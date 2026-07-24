@@ -1,25 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rekap Pencocokan Pembayaran Juni - Juli 2026</title>
+<title>Rekap Pencocokan Pembayaran — Multi Periode</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
     --navy:#1F4E78; --navy-dark:#153450; --green:#1e7e34; --green-bg:#e6f7ec;
     --red:#b02a2a; --red-bg:#fdecec; --gray:#6b7280; --border:#e2e6ea; --bg:#f4f6f9;
+    --amber:#92400e; --amber-bg:#fef3c7;
   }
   *{box-sizing:border-box;}
   body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;background:var(--bg);margin:0;color:#1f2937;}
   header{background:linear-gradient(135deg,var(--navy),var(--navy-dark));color:#fff;padding:28px 32px;}
   header h1{margin:0 0 6px 0;font-size:22px;}
   header p{margin:0;opacity:.85;font-size:13px;}
-  .wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px;}
+  .wrap{max-width:1240px;margin:0 auto;padding:24px 20px 60px;}
+
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:28px;}
   .card{background:#fff;border-radius:10px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);}
   .card .label{font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;}
-  .card .value{font-size:22px;font-weight:700;color:var(--navy-dark);}
+  .card .value{font-size:20px;font-weight:700;color:var(--navy-dark);}
   .card.green{border-left:4px solid var(--green);}
   .card.red{border-left:4px solid var(--red);}
   .card .sub{font-size:12px;color:var(--gray);margin-top:4px;}
@@ -30,6 +32,7 @@
   section.sudah .sec-head{background:var(--green-bg);}
   section.belum .sec-head{background:var(--red-bg);}
   section.recap .sec-head{background:#eef2f7;}
+  section.input .sec-head{background:#eef2f7;}
   .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;margin-left:8px;}
   .badge.green{background:var(--green);color:#fff;}
   .badge.red{background:var(--red);color:#fff;}
@@ -47,9 +50,10 @@
   .pos{color:var(--green);font-weight:600;}
   .neg{color:var(--red);font-weight:600;}
   .zero{color:var(--gray);}
-  .status-tag{font-size:11px;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#374151;}
-  .status-tag.juni{background:#fde8e8;color:#9b1c1c;}
-  .status-tag.juli{background:#fef3c7;color:#92400e;}
+  .status-tag{font-size:11px;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#374151;white-space:nowrap;}
+  .status-tag.p0{background:#fde8e8;color:#9b1c1c;}
+  .status-tag.p1{background:#fef3c7;color:#92400e;}
+  .status-tag.p2{background:#e0e7ff;color:#3730a3;}
   .count-tag{font-size:12px;color:var(--gray);}
 
   table.recap-table{font-size:14px;}
@@ -58,189 +62,530 @@
   table.recap-table td.num{font-variant-numeric:tabular-nums;}
   .total-row td{font-weight:700;background:#f8fafc;border-top:2px solid var(--border);}
   footer{text-align:center;color:var(--gray);font-size:12px;padding:20px;}
+
+  /* ---- input area ---- */
+  .period-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;padding:20px;}
+  .period-box{border:1px solid var(--border);border-radius:10px;padding:14px;background:#fafbfc;}
+  .period-box h3{margin:0 0 10px 0;font-size:14px;color:var(--navy-dark);}
+  .period-box input[type=text]{width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;margin-bottom:10px;}
+  .period-box input[type=file]{width:100%;font-size:12px;margin-bottom:8px;}
+  .period-box textarea{width:100%;height:100px;font-size:11px;font-family:Consolas,monospace;padding:8px;border:1px solid var(--border);border-radius:6px;resize:vertical;margin-bottom:8px;}
+  .btn{display:inline-block;padding:8px 14px;font-size:12px;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:var(--navy);color:#fff;margin-right:6px;margin-bottom:6px;}
+  .btn:hover{background:var(--navy-dark);}
+  .btn.small{padding:4px 9px;font-size:11px;}
+  .btn.gray{background:#6b7280;}
+  .btn.gray:hover{background:#4b5563;}
+  .btn.big{padding:12px 22px;font-size:14px;}
+  .btn:disabled{background:#c3cad3;cursor:not-allowed;}
+  .status-line{font-size:12px;color:var(--gray);margin:6px 0;}
+  .status-line.ok{color:var(--green);font-weight:600;}
+  .col-select{font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;}
+  .preview-scroll{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;background:#fff;}
+  .preview-scroll table{font-size:11px;}
+  .preview-scroll td, .preview-scroll th{padding:5px 8px;}
+  .preview-scroll td[contenteditable=true]{background:#fffef0;}
+  .tabs{display:flex;gap:4px;margin-bottom:10px;}
+  .tab-btn{flex:1;padding:6px 8px;font-size:11px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:6px;}
+  .tab-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .hint{font-size:11px;color:var(--gray);margin-bottom:8px;line-height:1.5;}
+  .compare-bar{padding:18px 20px;text-align:center;background:#eef2f7;}
+  .empty-msg{padding:40px 20px;text-align:center;color:var(--gray);font-size:13px;}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Rekap Pencocokan Pembayaran — Juni vs Juli 2026</h1>
-  <p>KSPPS "Artha Bahana Syariah" Randublatung &middot; Pencocokan berdasarkan Nomor Kontrak &amp; Nama</p>
+  <h1>Rekap Pencocokan Pembayaran — Multi Periode</h1>
+  <p>KSPPS "Artha Bahana Syariah" Randublatung &middot; Pencocokan berdasarkan Nomor Kontrak &amp; Nama &middot; Bandingkan hingga 3 periode sekaligus</p>
 </header>
 
 <div class="wrap">
 
-  <div class="cards" id="summaryCards"></div>
-
-  <section class="sudah">
-    <div class="sec-head">
-      <h2>✅ Sudah Bayar <span class="badge green" id="sudahCount"></span></h2>
-      <input type="text" class="search-box" id="searchSudah" placeholder="Cari nama / nomor kontrak...">
+  <section class="input">
+    <div class="sec-head"><h2>📥 Input Data (Data 1 &amp; Data 2)</h2></div>
+    <div class="hint" style="padding:14px 20px 0;">
+      Tugas utama: bandingkan <b>2 data</b> (mis. Juni vs Juli, atau bulan apa saja). Untuk tiap data, klik <b>Unggah PDF</b> — teks otomatis diekstrak &amp; diproses, dan nama data mengikuti nama file PDF yang diunggah.
+      Setelah diproses, pilih kolom angka mana yang merupakan <b>Basil</b>, periksa hasil pada tabel pratinjau (bisa diedit langsung), lalu klik <b>Konfirmasi</b>.
     </div>
-    <div class="table-scroll">
-      <table id="tableSudah">
-        <thead>
-          <tr>
-            <th data-key="nomor">Nomor Kontrak</th>
-            <th data-key="nama">Nama</th>
-            <th data-key="basil_juni" class="num">Basil Juni</th>
-            <th data-key="basil_juli" class="num">Basil Juli</th>
-            <th data-key="selisih" class="num">Selisih (Juni - Juli)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="period-grid" id="periodGrid"></div>
+    <div style="padding:0 20px 16px;">
+      <button class="btn gray small" id="btnAddThird" onclick="showThirdPeriod()">+ Tambah Data 3 (opsional, untuk bandingkan 3 data)</button>
+    </div>
+    <div class="compare-bar">
+      <button class="btn big" id="btnCompare" disabled>🔄 Bandingkan Data</button>
+      <div class="status-line" id="compareStatus">Minimal 2 data harus dikonfirmasi terlebih dahulu.</div>
     </div>
   </section>
 
-  <section class="belum">
-    <div class="sec-head">
-      <h2>⛔ Belum Bayar <span class="badge red" id="belumCount"></span></h2>
-      <input type="text" class="search-box" id="searchBelum" placeholder="Cari nama / nomor kontrak...">
-    </div>
-    <div class="table-scroll">
-      <table id="tableBelum">
-        <thead>
-          <tr>
-            <th data-key="nomor">Nomor Kontrak</th>
-            <th data-key="nama">Nama</th>
-            <th data-key="status">Status</th>
-            <th data-key="basil_juni" class="num">Basil Juni</th>
-            <th data-key="basil_juli" class="num">Basil Juli</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="recap">
-    <div class="sec-head"><h2>📊 Rekap Selisih Sudah Bayar vs Belum Bayar</h2></div>
-    <table class="recap-table">
-      <thead>
-        <tr><th>Keterangan</th><th class="num">Sudah Bayar</th><th class="num">Belum Bayar</th><th class="num">Selisih (Sudah - Belum)</th></tr>
-      </thead>
-      <tbody id="recapBody"></tbody>
-    </table>
-  </section>
+  <div id="resultsArea">
+    <div class="empty-msg">Belum ada hasil perbandingan. Isi minimal Data 1 dan Data 2 di atas lalu klik "Bandingkan Data".</div>
+  </div>
 
 </div>
 
-<footer>Dibuat otomatis dari data mutasi harian pinjaman JUNI.PDF &amp; JULI.PDF</footer>
+<footer>Alat pencocokan pembayaran — data dapat diganti setiap bulan sesuai PDF yang diunggah.</footer>
 
 <script>
-const DATA = {"sudah_bayar": [{"nomor": "25-00359", "nama": "AGUS RIYANTO", "basil_juni": 49580.0, "basil_juli": 33606.0, "selisih": 15974.0}, {"nomor": "26-00063", "nama": "AGUS SUNARTO", "basil_juni": 134187.0, "basil_juli": 126555.0, "selisih": 7632.0}, {"nomor": "25-00411", "nama": "AGUS TRIYONO", "basil_juni": 128440.0, "basil_juli": 236407.0, "selisih": -107967.0}, {"nomor": "26-00096", "nama": "AHMAD SUJADIK", "basil_juni": 88505.0, "basil_juli": 80935.0, "selisih": 7570.0}, {"nomor": "25-00124", "nama": "AMBAR SUBARATA HA", "basil_juni": 47205.0, "basil_juli": 35983.0, "selisih": 11222.0}, {"nomor": "26-00118", "nama": "ANA INDRA WAHYUNI", "basil_juni": 281685.0, "basil_juli": 276449.0, "selisih": 5236.0}, {"nomor": "25-00284", "nama": "ANITA DWI PRASETYA", "basil_juni": 128997.0, "basil_juli": 120922.0, "selisih": 8075.0}, {"nomor": "25-00440", "nama": "ANTON PRAKOSA", "basil_juni": 931232.0, "basil_juli": 908605.0, "selisih": 22627.0}, {"nomor": "26-00078", "nama": "APRILIA ERNAWATI", "basil_juni": 88505.0, "basil_juli": 80935.0, "selisih": 7570.0}, {"nomor": "25-00214", "nama": "ARISTA WIDYA HANIN", "basil_juni": 210238.0, "basil_juli": 194954.0, "selisih": 15284.0}, {"nomor": "25-00117", "nama": "ASMI", "basil_juni": 150511.0, "basil_juli": 141092.0, "selisih": 9419.0}, {"nomor": "22-00347", "nama": "ASTRI PUSPITA SARI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "22-00355", "nama": "ATANG SUGIANTO", "basil_juni": 460000.0, "basil_juli": 240600.0, "selisih": 219400.0}, {"nomor": "25-00298", "nama": "BAIDJURI", "basil_juni": 1148951.0, "basil_juli": 1116567.0, "selisih": 32384.0}, {"nomor": "25-00515", "nama": "BAKRI", "basil_juni": 150000.0, "basil_juli": 0.0, "selisih": 150000.0}, {"nomor": "24-00518", "nama": "BAMBANG", "basil_juni": 150000.0, "basil_juli": 0.0, "selisih": 150000.0}, {"nomor": "25-00391", "nama": "BAMBANG SUTRISNO", "basil_juni": 706688.0, "basil_juli": 688669.0, "selisih": 18019.0}, {"nomor": "25-00121", "nama": "BASIRUN", "basil_juni": 53418.0, "basil_juli": 48588.0, "selisih": 4830.0}, {"nomor": "26-00204", "nama": "BAYU IRAWAN", "basil_juni": 0.0, "basil_juli": 123000.0, "selisih": -123000.0}, {"nomor": "26-00024", "nama": "CHANDRA BELLA MAI", "basil_juni": 108077.0, "basil_juli": 95582.0, "selisih": 12495.0}, {"nomor": "25-00190", "nama": "DADIATI", "basil_juni": 58057.0, "basil_juli": 47205.0, "selisih": 10852.0}, {"nomor": "25-00450", "nama": "DAMAT", "basil_juni": 167125.0, "basil_juli": 157275.0, "selisih": 9850.0}, {"nomor": "25-00445", "nama": "DAMIATI", "basil_juni": 79957.0, "basil_juli": 65025.0, "selisih": 14932.0}, {"nomor": "26-00074", "nama": "DAMIRAH", "basil_juni": 118008.0, "basil_juli": 107915.0, "selisih": 10093.0}, {"nomor": "25-00324", "nama": "DARNI", "basil_juni": 1914932.0, "basil_juli": 1860959.0, "selisih": 53973.0}, {"nomor": "26-00157", "nama": "DARU YANU EKO CAH", "basil_juni": 168500.0, "basil_juli": 163827.0, "selisih": 4673.0}, {"nomor": "26-00093", "nama": "DESI LESTARI", "basil_juni": 336901.0, "basil_juli": 319476.0, "selisih": 17425.0}, {"nomor": "25-00541", "nama": "DESY WIJAYANTI", "basil_juni": 298936.0, "basil_juli": 293204.0, "selisih": 5732.0}, {"nomor": "26-00119", "nama": "DIAN KRISTIYANTI", "basil_juni": 98296.0, "basil_juli": 95398.0, "selisih": 2898.0}, {"nomor": "25-00400", "nama": "DIDIK AGUS SETIAWA", "basil_juni": 225681.0, "basil_juli": 205509.0, "selisih": 20172.0}, {"nomor": "26-00158", "nama": "DIYARA WAHYU LILIA", "basil_juni": 269600.0, "basil_juli": 262124.0, "selisih": 7476.0}, {"nomor": "26-00170", "nama": "DJASMI", "basil_juni": 171500.0, "basil_juli": 159708.0, "selisih": 11792.0}, {"nomor": "26-00077", "nama": "DRIYONO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00409", "nama": "DWI ASTUTIKNINGSIH", "basil_juni": 107180.0, "basil_juli": 98003.0, "selisih": 9177.0}, {"nomor": "26-00040", "nama": "DWI FITRIYANI", "basil_juni": 53955.0, "basil_juli": 48735.0, "selisih": 5220.0}, {"nomor": "26-00092", "nama": "DWI PRISTIWAN", "basil_juni": 460748.0, "basil_juli": 451812.0, "selisih": 8936.0}, {"nomor": "25-00472", "nama": "DWI SETYO YUNI UTA", "basil_juni": 412818.0, "basil_juli": 399930.0, "selisih": 12888.0}, {"nomor": "24-00343", "nama": "EDI SETYONO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00146", "nama": "EDY CAHYONO", "basil_juni": 256092.0, "basil_juli": 252057.0, "selisih": 4035.0}, {"nomor": "24-00080", "nama": "EDY HERIYANTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00125", "nama": "EDY SISWANTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00514", "nama": "EKO SUJATMAN", "basil_juni": 86660.0, "basil_juli": 75160.0, "selisih": 11500.0}, {"nomor": "25-00360", "nama": "ELDA DWI NASTITI", "basil_juni": 253934.0, "basil_juli": 239720.0, "selisih": 14214.0}, {"nomor": "21-00473", "nama": "ENCENG DAUD SURY", "basil_juni": 0.0, "basil_juli": 108100.0, "selisih": -108100.0}, {"nomor": "25-00443", "nama": "ENDAH AYU SEMBOD", "basil_juni": 450125.0, "basil_juli": 447150.0, "selisih": 2975.0}, {"nomor": "26-00095", "nama": "ENDAH FRISTIWANI", "basil_juni": 59002.0, "basil_juli": 53955.0, "selisih": 5047.0}, {"nomor": "25-00118", "nama": "ENDANG", "basil_juni": 338232.0, "basil_juli": 326367.0, "selisih": 11865.0}, {"nomor": "25-00044", "nama": "ENDANG", "basil_juni": 70000.0, "basil_juli": 30000.0, "selisih": 40000.0}, {"nomor": "25-00422", "nama": "ENDANG PURWATI", "basil_juni": 196398.0, "basil_juli": 186224.0, "selisih": 10174.0}, {"nomor": "26-00162", "nama": "ENDANG SRI MINDAR", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00051", "nama": "EVA RAHAYU", "basil_juni": 8400.0, "basil_juli": 0.0, "selisih": 8400.0}, {"nomor": "26-00094", "nama": "FARIDA KRISTINA AN", "basil_juni": 147511.0, "basil_juli": 134896.0, "selisih": 12615.0}, {"nomor": "26-00140", "nama": "FITRA MUZAKI AKBAR", "basil_juni": 139253.0, "basil_juli": 257828.0, "selisih": -118575.0}, {"nomor": "25-00414", "nama": "GITO", "basil_juni": 196398.0, "basil_juli": 186224.0, "selisih": 10174.0}, {"nomor": "26-00008", "nama": "GUNAWAN", "basil_juni": 121848.0, "basil_juli": 174351.0, "selisih": -52503.0}, {"nomor": "25-00388", "nama": "GUNAWAN", "basil_juni": 70000.0, "basil_juli": 0.0, "selisih": 70000.0}, {"nomor": "22-00513", "nama": "GUTOMO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00355", "nama": "HADI SUWITO", "basil_juni": 136753.0, "basil_juli": 138960.0, "selisih": -2207.0}, {"nomor": "26-00038", "nama": "HARYANTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "23-00650", "nama": "HENDRO IRAWAN", "basil_juni": 278775.0, "basil_juli": 276925.0, "selisih": 1850.0}, {"nomor": "26-00202", "nama": "HERIYANTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00103", "nama": "IMAM KRISDIANTORO", "basil_juni": 0.0, "basil_juli": 345000.0, "selisih": -345000.0}, {"nomor": "26-00166", "nama": "IMAM MISBACHUL KH", "basil_juni": 597500.0, "basil_juli": 586845.0, "selisih": 10655.0}, {"nomor": "25-00369", "nama": "IMAN SUGIANTO", "basil_juni": 1377349.0, "basil_juli": 1340450.0, "selisih": 36899.0}, {"nomor": "24-00482", "nama": "IMAS NUR AMBARWAT", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00537", "nama": "INDARTI", "basil_juni": 75839.0, "basil_juli": 66067.0, "selisih": 9772.0}, {"nomor": "26-00048", "nama": "ISMI RATIH", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00181", "nama": "JAIN", "basil_juni": 345000.0, "basil_juli": 0.0, "selisih": 345000.0}, {"nomor": "25-00226", "nama": "JAMAN", "basil_juni": 280329.0, "basil_juli": 259951.0, "selisih": 20378.0}, {"nomor": "25-00478", "nama": "JOKO BUDIYONO", "basil_juni": 294569.0, "basil_juli": 281350.0, "selisih": 13219.0}, {"nomor": "26-00210", "nama": "JOKO MUJIONO", "basil_juni": 0.0, "basil_juli": 172200.0, "selisih": -172200.0}, {"nomor": "26-00172", "nama": "JOKO SUBAGIO", "basil_juni": 136400.0, "basil_juli": 124724.0, "selisih": 11676.0}, {"nomor": "26-00165", "nama": "JUMINI", "basil_juni": 690000.0, "basil_juli": 0.0, "selisih": 690000.0}, {"nomor": "24-00489", "nama": "JUREMI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00126", "nama": "JUWARTI", "basil_juni": 356068.0, "basil_juli": 344357.0, "selisih": 11711.0}, {"nomor": "26-00163", "nama": "JUWARTI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00244", "nama": "JUWATI", "basil_juni": 0.0, "basil_juli": 230000.0, "selisih": -230000.0}, {"nomor": "26-00156", "nama": "JUWITA SELVIANI", "basil_juni": 171500.0, "basil_juli": 159708.0, "selisih": 11792.0}, {"nomor": "24-00188", "nama": "KARDIMIN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00132", "nama": "KARNO", "basil_juni": 438945.0, "basil_juli": 399566.0, "selisih": 39379.0}, {"nomor": "26-00133", "nama": "KARTINI", "basil_juni": 352107.0, "basil_juli": 345561.0, "selisih": 6546.0}, {"nomor": "25-00403", "nama": "KASDI", "basil_juni": 446350.0, "basil_juli": 423227.0, "selisih": 23123.0}, {"nomor": "25-00390", "nama": "KASDI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00192", "nama": "KASDI", "basil_juni": 0.0, "basil_juli": 170500.0, "selisih": -170500.0}, {"nomor": "26-00102", "nama": "KASMI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00209", "nama": "KASNADI", "basil_juni": 0.0, "basil_juli": 220500.0, "selisih": -220500.0}, {"nomor": "25-00208", "nama": "KASTURI", "basil_juni": 361136.0, "basil_juli": 349819.0, "selisih": 11317.0}, {"nomor": "25-00508", "nama": "KATMAN", "basil_juni": 143509.0, "basil_juli": 137994.0, "selisih": 5515.0}, {"nomor": "25-00315", "nama": "KRISTIANI", "basil_juni": 143426.0, "basil_juli": 134578.0, "selisih": 8848.0}, {"nomor": "26-00113", "nama": "KUNTONO", "basil_juni": 54950.0, "basil_juli": 37450.0, "selisih": 17500.0}, {"nomor": "25-00001", "nama": "KUSTIYAH", "basil_juni": 146816.0, "basil_juli": 129978.0, "selisih": 16838.0}, {"nomor": "23-00690", "nama": "LAMIN", "basil_juni": 150000.0, "basil_juli": 0.0, "selisih": 150000.0}, {"nomor": "24-00443", "nama": "LAMIYATI", "basil_juni": 276005.0, "basil_juli": 262654.0, "selisih": 13351.0}, {"nomor": "26-00098", "nama": "LASDIYANTO", "basil_juni": 118008.0, "basil_juli": 107915.0, "selisih": 10093.0}, {"nomor": "26-00090", "nama": "LASIRAN", "basil_juni": 691121.0, "basil_juli": 677716.0, "selisih": 13405.0}, {"nomor": "26-00043", "nama": "LENI ANDAYANI", "basil_juni": 191699.0, "basil_juli": 180796.0, "selisih": 10903.0}, {"nomor": "25-00545", "nama": "LILIK SULISTIYONO", "basil_juni": 219325.0, "basil_juli": 195032.0, "selisih": 24293.0}, {"nomor": "26-00161", "nama": "MARIJAH", "basil_juni": 120050.0, "basil_juli": 111794.0, "selisih": 8256.0}, {"nomor": "23-00125", "nama": "MARJO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00049", "nama": "MARMI", "basil_juni": 175363.0, "basil_juli": 158401.0, "selisih": 16962.0}, {"nomor": "26-00154", "nama": "MARSIH", "basil_juni": 85750.0, "basil_juli": 79854.0, "selisih": 5896.0}, {"nomor": "25-00484", "nama": "MIFTACHUL FAJRI", "basil_juni": 56632.0, "basil_juli": 47969.0, "selisih": 8663.0}, {"nomor": "24-00142", "nama": "MOH. ZAENURI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00167", "nama": "MU'AYAH", "basil_juni": 102300.0, "basil_juli": 93543.0, "selisih": 8757.0}, {"nomor": "25-00525", "nama": "MUDLOFAR", "basil_juni": 86680.0, "basil_juli": 75513.0, "selisih": 11167.0}, {"nomor": "26-00176", "nama": "MUHAMAD AZIS", "basil_juni": 102900.0, "basil_juli": 95824.0, "selisih": 7076.0}, {"nomor": "24-00369", "nama": "MUHAMAD JAUJI", "basil_juni": 0.0, "basil_juli": 52500.0, "selisih": -52500.0}, {"nomor": "26-00081", "nama": "MUHAMAD NARTO", "basil_juni": 158998.0, "basil_juli": 154005.0, "selisih": 4993.0}, {"nomor": "25-00234", "nama": "MUHAMAD SUDARJI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "23-00416", "nama": "MUHAMMAD FREDI RI", "basil_juni": 57077.0, "basil_juli": 38493.0, "selisih": 18584.0}, {"nomor": "26-00137", "nama": "MUHAMMAD NUR SYA", "basil_juni": 320115.0, "basil_juli": 315072.0, "selisih": 5043.0}, {"nomor": "25-00436", "nama": "MUJIONO", "basil_juni": 264587.0, "basil_juli": 252802.0, "selisih": 11785.0}, {"nomor": "24-00515", "nama": "MULYONO", "basil_juni": 575000.0, "basil_juli": 0.0, "selisih": 575000.0}, {"nomor": "24-00476", "nama": "MURI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00115", "nama": "NANANG FORM'AIZI Y", "basil_juni": 239073.0, "basil_juli": 217684.0, "selisih": 21389.0}, {"nomor": "26-00129", "nama": "NGADIRAN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00277", "nama": "NINIK SARTIKA", "basil_juni": 231125.0, "basil_juli": 231125.0, "selisih": 0.0}, {"nomor": "26-00017", "nama": "NUR RIFAL MUSTAKHI", "basil_juni": 138954.0, "basil_juli": 229357.0, "selisih": -90403.0}, {"nomor": "26-00155", "nama": "NUR SETYANINGSIH", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00187", "nama": "NURHAYATI", "basil_juni": 478000.0, "basil_juli": 469476.0, "selisih": 8524.0}, {"nomor": "26-00134", "nama": "NUROHMAN", "basil_juni": 95824.0, "basil_juli": 88505.0, "selisih": 7319.0}, {"nomor": "24-00425", "nama": "NURYATI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00397", "nama": "NURYATI", "basil_juni": 1009564.0, "basil_juli": 983822.0, "selisih": 25742.0}, {"nomor": "25-00010", "nama": "NYAMAN", "basil_juni": 0.0, "basil_juli": 225000.0, "selisih": -225000.0}, {"nomor": "22-00175", "nama": "NYOTO", "basil_juni": 0.0, "basil_juli": 147775.0, "selisih": -147775.0}, {"nomor": "25-00513", "nama": "PARDJI", "basil_juni": 108352.0, "basil_juli": 94394.0, "selisih": 13958.0}, {"nomor": "24-00331", "nama": "PARIYO", "basil_juni": 248983.0, "basil_juli": 234986.0, "selisih": 13997.0}, {"nomor": "25-00480", "nama": "PARMO", "basil_juni": 1588886.0, "basil_juli": 1552056.0, "selisih": 36830.0}, {"nomor": "26-00169", "nama": "PARNI", "basil_juni": 478000.0, "basil_juli": 469476.0, "selisih": 8524.0}, {"nomor": "25-00123", "nama": "PARNI", "basil_juni": 173265.0, "basil_juli": 158402.0, "selisih": 14863.0}, {"nomor": "26-00044", "nama": "PARSINI", "basil_juni": 338858.0, "basil_juli": 331996.0, "selisih": 6862.0}, {"nomor": "25-00364", "nama": "PARWOTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00225", "nama": "PARYONO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00100", "nama": "PODO", "basil_juni": 460748.0, "basil_juli": 451812.0, "selisih": 8936.0}, {"nomor": "26-00087", "nama": "PODO", "basil_juni": 575936.0, "basil_juli": 564766.0, "selisih": 11170.0}, {"nomor": "26-00136", "nama": "PUGUH ADI NUGROH", "basil_juni": 93543.0, "basil_juli": 84488.0, "selisih": 9055.0}, {"nomor": "25-00317", "nama": "PUJI ASTUTI", "basil_juni": 71713.0, "basil_juli": 67289.0, "selisih": 4424.0}, {"nomor": "26-00007", "nama": "RAGIL PUTRILIA CAND", "basil_juni": 281927.0, "basil_juli": 265879.0, "selisih": 16048.0}, {"nomor": "25-00473", "nama": "RAHMAD ABDUL AZIS", "basil_juni": 392764.0, "basil_juli": 375140.0, "selisih": 17624.0}, {"nomor": "26-00185", "nama": "RASIMAN", "basil_juni": 1230000.0, "basil_juli": 1140638.0, "selisih": 89362.0}, {"nomor": "26-00194", "nama": "RATNA DUMILAH", "basil_juni": 0.0, "basil_juli": 140000.0, "selisih": -140000.0}, {"nomor": "25-00223", "nama": "RATNA DWI WIDIANIN", "basil_juni": 280329.0, "basil_juli": 499024.0, "selisih": -218695.0}, {"nomor": "26-00211", "nama": "RETNO PUJIATI", "basil_juni": 0.0, "basil_juli": 1195000.0, "selisih": -1195000.0}, {"nomor": "23-00688", "nama": "RIANA", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00280", "nama": "RINA NURJANAH", "basil_juni": 744378.0, "basil_juli": 722272.0, "selisih": 22106.0}, {"nomor": "26-00203", "nama": "RINA WAHYUNINGSIH", "basil_juni": 0.0, "basil_juli": 247000.0, "selisih": -247000.0}, {"nomor": "25-00174", "nama": "RISKI RELIKA AJI S", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00485", "nama": "ROHIM SETIOKO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00328", "nama": "RONI UTOMO", "basil_juni": 215139.0, "basil_juli": 201867.0, "selisih": 13272.0}, {"nomor": "26-00023", "nama": "RUDIANTO", "basil_juni": 442662.0, "basil_juli": 433294.0, "selisih": 9368.0}, {"nomor": "26-00124", "nama": "SAFITRI HANDAYANI", "basil_juni": 218267.0, "basil_juli": 197138.0, "selisih": 21129.0}, {"nomor": "26-00142", "nama": "SAIFUL YUSMEN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00347", "nama": "SAMPIRWATI", "basil_juni": 97338.0, "basil_juli": 98878.0, "selisih": -1540.0}, {"nomor": "26-00114", "nama": "SARDI", "basil_juni": 315072.0, "basil_juli": 309864.0, "selisih": 5208.0}, {"nomor": "25-00302", "nama": "SARDIMAN", "basil_juni": 1148951.0, "basil_juli": 1116567.0, "selisih": 32384.0}, {"nomor": "26-00001", "nama": "SARIYADI", "basil_juni": 48735.0, "basil_juli": 113061.0, "selisih": -64326.0}, {"nomor": "24-00485", "nama": "SARIYUN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00215", "nama": "SARJI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00022", "nama": "SARMAN", "basil_juni": 238149.0, "basil_juli": 229612.0, "selisih": 8537.0}, {"nomor": "25-00350", "nama": "SARMI", "basil_juni": 338587.0, "basil_juli": 319636.0, "selisih": 18951.0}, {"nomor": "26-00099", "nama": "SARWANTO", "basil_juni": 688716.0, "basil_juli": 664719.0, "selisih": 23997.0}, {"nomor": "25-00048", "nama": "SETIYO BUDI UTOMO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00208", "nama": "SINTA", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "22-00263", "nama": "SISWANTO", "basil_juni": 460000.0, "basil_juli": 0.0, "selisih": 460000.0}, {"nomor": "26-00200", "nama": "SITI ALFIATUN NIKMA", "basil_juni": 0.0, "basil_juli": 1792500.0, "selisih": -1792500.0}, {"nomor": "25-00393", "nama": "SITI HANIK MUTMA'IN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00160", "nama": "SITI KHOTIJAH", "basil_juni": 102900.0, "basil_juli": 95824.0, "selisih": 7076.0}, {"nomor": "26-00213", "nama": "SITI KUDRIYAH", "basil_juni": 0.0, "basil_juli": 246000.0, "selisih": -246000.0}, {"nomor": "26-00021", "nama": "SITI NURHIDAYATI", "basil_juni": 885325.0, "basil_juli": 866588.0, "selisih": 18737.0}, {"nomor": "26-00174", "nama": "SITI PURNOMO", "basil_juni": 478000.0, "basil_juli": 469476.0, "selisih": 8524.0}, {"nomor": "26-00009", "nama": "SITI RUBIATI", "basil_juni": 169154.0, "basil_juli": 159524.0, "selisih": 9630.0}, {"nomor": "25-00376", "nama": "SITI YUSMIATI", "basil_juni": 182499.0, "basil_juli": 172111.0, "selisih": 10388.0}, {"nomor": "26-00085", "nama": "SIYANTI", "basil_juni": 1612621.0, "basil_juli": 1581344.0, "selisih": 31277.0}, {"nomor": "24-00416", "nama": "SOEDARMINTO", "basil_juni": 69719.0, "basil_juli": 56442.0, "selisih": 13277.0}, {"nomor": "26-00011", "nama": "SOPYAN", "basil_juni": 43626.0, "basil_juli": 36951.0, "selisih": 6675.0}, {"nomor": "25-00330", "nama": "SRI KUSMIATI", "basil_juni": 1518275.0, "basil_juli": 1426053.0, "selisih": 92222.0}, {"nomor": "26-00080", "nama": "SRI LESTARI", "basil_juni": 147511.0, "basil_juli": 134896.0, "selisih": 12615.0}, {"nomor": "25-00475", "nama": "SRI LILIN", "basil_juni": 635548.0, "basil_juli": 620815.0, "selisih": 14733.0}, {"nomor": "26-00086", "nama": "SRI MARIYATI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00047", "nama": "SRI MULYANA", "basil_juni": 903624.0, "basil_juli": 885325.0, "selisih": 18299.0}, {"nomor": "25-00232", "nama": "SRIANIK", "basil_juni": 1083408.0, "basil_juli": 1049457.0, "selisih": 33951.0}, {"nomor": "23-00707", "nama": "SRININGSIH", "basil_juni": 95369.0, "basil_juli": 152389.0, "selisih": -57020.0}, {"nomor": "25-00447", "nama": "SRIWATI (PANGGANG)", "basil_juni": 1241639.0, "basil_juli": 1211470.0, "selisih": 30169.0}, {"nomor": "24-00397", "nama": "SRIYATIN", "basil_juni": 2166932.0, "basil_juli": 2054151.0, "selisih": 112781.0}, {"nomor": "26-00171", "nama": "SRIYATUN", "basil_juni": 204600.0, "basil_juli": 196179.0, "selisih": 8421.0}, {"nomor": "26-00198", "nama": "SUBADI", "basil_juni": 0.0, "basil_juli": 137200.0, "selisih": -137200.0}, {"nomor": "25-00286", "nama": "SUCIPTO", "basil_juni": 165123.0, "basil_juli": 154183.0, "selisih": 10940.0}, {"nomor": "25-00483", "nama": "SUDARTI", "basil_juni": 158307.0, "basil_juli": 142992.0, "selisih": 15315.0}, {"nomor": "25-00013", "nama": "SUGENG NUR CAHYO", "basil_juni": 0.0, "basil_juli": 337500.0, "selisih": -337500.0}, {"nomor": "26-00127", "nama": "SUGIANTO", "basil_juni": 159708.0, "basil_juli": 147511.0, "selisih": 12197.0}, {"nomor": "26-00130", "nama": "SUHARTINI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00363", "nama": "SUHARTINIK", "basil_juni": 304165.0, "basil_juli": 286852.0, "selisih": 17313.0}, {"nomor": "26-00010", "nama": "SUINDAH", "basil_juni": 281927.0, "basil_juli": 265879.0, "selisih": 16048.0}, {"nomor": "25-00143", "nama": "SUJI", "basil_juni": 131492.0, "basil_juli": 227404.0, "selisih": -95912.0}, {"nomor": "25-00186", "nama": "SUJITO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00193", "nama": "SUJITO", "basil_juni": 0.0, "basil_juli": 171500.0, "selisih": -171500.0}, {"nomor": "26-00041", "nama": "SUKARDI", "basil_juni": 451812.0, "basil_juli": 442662.0, "selisih": 9150.0}, {"nomor": "26-00003", "nama": "SUKARJI", "basil_juni": 148844.0, "basil_juli": 143509.0, "selisih": 5335.0}, {"nomor": "23-00524", "nama": "SUKARMI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00201", "nama": "SUKARTI", "basil_juni": 0.0, "basil_juli": 98000.0, "selisih": -98000.0}, {"nomor": "25-00509", "nama": "SUKARTINI", "basil_juni": 93056.0, "basil_juli": 87248.0, "selisih": 5808.0}, {"nomor": "26-00115", "nama": "SUKESI", "basil_juni": 251777.0, "basil_juli": 618009.0, "selisih": -366232.0}, {"nomor": "24-00354", "nama": "SUKIDI", "basil_juni": 77884.0, "basil_juli": 52545.0, "selisih": 25339.0}, {"nomor": "23-00547", "nama": "SULASIH", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00159", "nama": "SULATIN", "basil_juni": 171500.0, "basil_juli": 159708.0, "selisih": 11792.0}, {"nomor": "24-00008", "nama": "SULIKAH", "basil_juni": 0.0, "basil_juli": 45000.0, "selisih": -45000.0}, {"nomor": "25-00357", "nama": "SUMAJI", "basil_juni": 337500.0, "basil_juli": 0.0, "selisih": 337500.0}, {"nomor": "25-00069", "nama": "SUMANI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00084", "nama": "SUMARDIYANTO", "basil_juni": 147511.0, "basil_juli": 134896.0, "selisih": 12615.0}, {"nomor": "26-00206", "nama": "SUMARNO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "24-00272", "nama": "SUMI", "basil_juni": 270000.0, "basil_juli": 0.0, "selisih": 270000.0}, {"nomor": "26-00082", "nama": "SUMIATI", "basil_juni": 444300.0, "basil_juli": 443050.0, "selisih": 1250.0}, {"nomor": "25-00371", "nama": "SUMIATUN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00307", "nama": "SUMINI", "basil_juni": 159818.0, "basil_juli": 150110.0, "selisih": 9708.0}, {"nomor": "25-00060", "nama": "SUMININGSIH", "basil_juni": 32626.0, "basil_juli": 26381.0, "selisih": 6245.0}, {"nomor": "25-00444", "nama": "SUMIRAH", "basil_juni": 79957.0, "basil_juli": 148211.0, "selisih": -68254.0}, {"nomor": "26-00036", "nama": "SUMIYATI", "basil_juni": 37562.0, "basil_juli": 82968.0, "selisih": -45406.0}, {"nomor": "26-00083", "nama": "SUNARDI", "basil_juni": 415269.0, "basil_juli": 400423.0, "selisih": 14846.0}, {"nomor": "26-00128", "nama": "SUNARDI", "basil_juni": 474759.0, "basil_juli": 459144.0, "selisih": 15615.0}, {"nomor": "25-00279", "nama": "SUNARNI", "basil_juni": 558276.0, "basil_juli": 541696.0, "selisih": 16580.0}, {"nomor": "21-00415", "nama": "SUNARSIH", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00212", "nama": "SUNARTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00073", "nama": "SUNDARI", "basil_juni": 177014.0, "basil_juli": 161876.0, "selisih": 15138.0}, {"nomor": "25-00521", "nama": "SUNYIPTO", "basil_juni": 75839.0, "basil_juli": 122026.0, "selisih": -46187.0}, {"nomor": "26-00144", "nama": "SUPADI", "basil_juni": 163625.0, "basil_juli": 134375.0, "selisih": 29250.0}, {"nomor": "26-00131", "nama": "SUPADMI", "basil_juni": 130785.0, "basil_juli": 124979.0, "selisih": 5806.0}, {"nomor": "25-00144", "nama": "SUPARMAN", "basil_juni": 280000.0, "basil_juli": 0.0, "selisih": 280000.0}, {"nomor": "25-00446", "nama": "SUPARMAN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00362", "nama": "SUPARMI", "basil_juni": 106458.0, "basil_juli": 100398.0, "selisih": 6060.0}, {"nomor": "24-00521", "nama": "SUPARNI", "basil_juni": 138875.0, "basil_juli": 162025.0, "selisih": -23150.0}, {"nomor": "24-00534", "nama": "SUPARTINI", "basil_juni": 164652.0, "basil_juli": 263218.0, "selisih": -98566.0}, {"nomor": "26-00120", "nama": "SUPARTINI", "basil_juni": 102825.0, "basil_juli": 94468.0, "selisih": 8357.0}, {"nomor": "24-00044", "nama": "SUPIRMAN", "basil_juni": 538870.0, "basil_juli": 890482.0, "selisih": -351612.0}, {"nomor": "25-00378", "nama": "SUPRIATUN", "basil_juni": 152082.0, "basil_juli": 143426.0, "selisih": 8656.0}, {"nomor": "24-00333", "nama": "SUPRIYANTI", "basil_juni": 311237.0, "basil_juli": 293741.0, "selisih": 17496.0}, {"nomor": "25-00512", "nama": "SUPRIYO", "basil_juni": 150000.0, "basil_juli": 0.0, "selisih": 150000.0}, {"nomor": "25-00299", "nama": "SURANTO", "basil_juni": 0.0, "basil_juli": 240000.0, "selisih": -240000.0}, {"nomor": "26-00055", "nama": "SURAT", "basil_juni": 178466.0, "basil_juli": 169154.0, "selisih": 9312.0}, {"nomor": "25-00401", "nama": "SUSANTO", "basil_juni": 321101.0, "basil_juli": 304165.0, "selisih": 16936.0}, {"nomor": "26-00197", "nama": "SUSENO", "basil_juni": 0.0, "basil_juli": 171500.0, "selisih": -171500.0}, {"nomor": "26-00030", "nama": "SUSI LESTARI", "basil_juni": 663991.0, "basil_juli": 649938.0, "selisih": 14053.0}, {"nomor": "26-00079", "nama": "SUSI SUWARNI", "basil_juni": 73755.0, "basil_juli": 67448.0, "selisih": 6307.0}, {"nomor": "26-00196", "nama": "SUTIONO", "basil_juni": 0.0, "basil_juli": 490000.0, "selisih": -490000.0}, {"nomor": "25-00308", "nama": "SUTRI", "basil_juni": 239720.0, "basil_juli": 225157.0, "selisih": 14563.0}, {"nomor": "25-00389", "nama": "SUTRISNO", "basil_juni": 150058.0, "basil_juli": 137212.0, "selisih": 12846.0}, {"nomor": "26-00199", "nama": "SUTRISNO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00490", "nama": "SUWARNO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00076", "nama": "SUWARSONO", "basil_juni": 61329.0, "basil_juli": 57506.0, "selisih": 3823.0}, {"nomor": "26-00195", "nama": "SUWARTO", "basil_juni": 0.0, "basil_juli": 85750.0, "selisih": -85750.0}, {"nomor": "25-00413", "nama": "SUYANTO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00004", "nama": "SUYATMAN", "basil_juni": 0.0, "basil_juli": 150000.0, "selisih": -150000.0}, {"nomor": "26-00214", "nama": "SUYENI", "basil_juni": 0.0, "basil_juli": 864500.0, "selisih": -864500.0}, {"nomor": "26-00175", "nama": "SYAMSUL HADI", "basil_juni": 111000.0, "basil_juli": 102825.0, "selisih": 8175.0}, {"nomor": "25-00014", "nama": "TAMI", "basil_juni": 26788.0, "basil_juli": 13533.0, "selisih": 13255.0}, {"nomor": "26-00139", "nama": "TAMINI", "basil_juni": 712138.0, "basil_juli": 688716.0, "selisih": 23422.0}, {"nomor": "22-00104", "nama": "TEGO", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "26-00058", "nama": "TIMTIM DWI LESTARI", "basil_juni": 231010.0, "basil_juli": 223269.0, "selisih": 7741.0}, {"nomor": "26-00052", "nama": "TITIK SETIYANTI", "basil_juni": 338858.0, "basil_juli": 331996.0, "selisih": 6862.0}, {"nomor": "25-00434", "nama": "TOTOK SUGIANTO", "basil_juni": 132294.0, "basil_juli": 126401.0, "selisih": 5893.0}, {"nomor": "26-00018", "nama": "TRI SETYO SUHARDA", "basil_juni": 442662.0, "basil_juli": 433294.0, "selisih": 9368.0}, {"nomor": "23-00634", "nama": "TRIANDRY PRAMONO", "basil_juni": 0.0, "basil_juli": 230000.0, "selisih": -230000.0}, {"nomor": "25-00526", "nama": "TRIYONO", "basil_juni": 46188.0, "basil_juli": 37559.0, "selisih": 8629.0}, {"nomor": "26-00117", "nama": "UMI MAHMUDAH", "basil_juni": 163827.0, "basil_juli": 158998.0, "selisih": 4829.0}, {"nomor": "23-00383", "nama": "UMMI MUMTAHANAH", "basil_juni": 0.0, "basil_juli": 163600.0, "selisih": -163600.0}, {"nomor": "23-00447", "nama": "UPIK HASTANTI", "basil_juni": 0.0, "basil_juli": 345000.0, "selisih": -345000.0}, {"nomor": "26-00152", "nama": "UTOMO", "basil_juni": 95824.0, "basil_juli": 88505.0, "selisih": 7319.0}, {"nomor": "25-00099", "nama": "UUN KURNIA UMAYATI", "basil_juni": 86633.0, "basil_juli": 79201.0, "selisih": 7432.0}, {"nomor": "26-00039", "nama": "WAHYU PUTRI", "basil_juni": 0.0, "basil_juli": 115000.0, "selisih": -115000.0}, {"nomor": "24-00546", "nama": "WARDI", "basil_juni": 6114148.0, "basil_juli": 1083940.0, "selisih": 5030208.0}, {"nomor": "26-00015", "nama": "WARIJAN", "basil_juni": 112767.0, "basil_juli": 106346.0, "selisih": 6421.0}, {"nomor": "22-00270", "nama": "WARIMIN", "basil_juni": 300000.0, "basil_juli": 350000.0, "selisih": -50000.0}, {"nomor": "26-00107", "nama": "WASRINI", "basil_juni": 103255.0, "basil_juli": 94423.0, "selisih": 8832.0}, {"nomor": "25-00133", "nama": "WINDA SARI", "basil_juni": 591900.0, "basil_juli": 1121015.0, "selisih": -529115.0}, {"nomor": "25-00295", "nama": "WIWIK JUMIATI", "basil_juni": 88513.0, "basil_juli": 78700.0, "selisih": 9813.0}, {"nomor": "24-00445", "nama": "YADI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00164", "nama": "YADI", "basil_juni": 349819.0, "basil_juli": 338232.0, "selisih": 11587.0}, {"nomor": "25-00438", "nama": "YAHMI", "basil_juni": 69627.0, "basil_juli": 123097.0, "selisih": -53470.0}, {"nomor": "25-00455", "nama": "YAHMIN", "basil_juni": 47969.0, "basil_juli": 39009.0, "selisih": 8960.0}, {"nomor": "26-00037", "nama": "YATUN", "basil_juni": 308010.0, "basil_juli": 297688.0, "selisih": 10322.0}, {"nomor": "24-00440", "nama": "YENI SETYAWAN", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00207", "nama": "YENI TRIBEKTI", "basil_juni": 280329.0, "basil_juli": 259951.0, "selisih": 20378.0}, {"nomor": "25-00319", "nama": "YOMI", "basil_juni": 88513.0, "basil_juli": 78700.0, "selisih": 9813.0}, {"nomor": "23-00646", "nama": "YOYOK", "basil_juni": 165374.0, "basil_juli": 139404.0, "selisih": 25970.0}, {"nomor": "25-00448", "nama": "YUDI HARIYANTO", "basil_juni": 827760.0, "basil_juli": 807647.0, "selisih": 20113.0}, {"nomor": "25-00067", "nama": "YULIANTI", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00135", "nama": "YUNIK", "basil_juni": 0.0, "basil_juli": 0.0, "selisih": 0.0}, {"nomor": "25-00528", "nama": "YUSNO", "basil_juni": 409966.0, "basil_juli": 392764.0, "selisih": 17202.0}, {"nomor": "26-00006", "nama": "ZAENUL MUTTAQIN", "basil_juni": 121848.0, "basil_juli": 282703.0, "selisih": -160855.0}], "belum_bayar": [{"nomor": "26-00261", "nama": "ACHMAD SUNARNO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00226", "nama": "AGUS TRIYONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00539", "nama": "AHMAT WAHYUDI", "status": "Hanya Juni", "basil_juni": 649938.0, "basil_juli": 0.0}, {"nomor": "26-00042", "nama": "AMBAR CAHYANINGR", "status": "Hanya Juni", "basil_juni": 3319428.0, "basil_juli": 0.0}, {"nomor": "26-00237", "nama": "AMBAR CAHYANINGR", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00535", "nama": "ANIK PURWATI", "status": "Hanya Juni", "basil_juni": 86680.0, "basil_juli": 0.0}, {"nomor": "26-00247", "nama": "ANTON WILIYOKO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00542", "nama": "AZIS KHOIRI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 86660.0}, {"nomor": "25-00431", "nama": "BAMBANG RISMANTO", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00470", "nama": "BAYU IRAWAN", "status": "Hanya Juni", "basil_juni": 119841.0, "basil_juli": 0.0}, {"nomor": "25-00058", "nama": "DAMIN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 1088441.0}, {"nomor": "26-00242", "nama": "DAMIN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00121", "nama": "DAMSRI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 346049.0}, {"nomor": "25-00476", "nama": "DARIYANTI", "status": "Hanya Juni", "basil_juni": 104601.0, "basil_juli": 0.0}, {"nomor": "26-00191", "nama": "DARIYANTI", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00216", "nama": "DARMINTO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00222", "nama": "DARSIH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 358500.0}, {"nomor": "25-00125", "nama": "DARWATININGSIH", "status": "Hanya Juni", "basil_juni": 249829.0, "basil_juli": 0.0}, {"nomor": "24-00469", "nama": "DEVI SOIMI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 84511.0}, {"nomor": "25-00221", "nama": "DEVI SRISULISTIN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00421", "nama": "DEWI PURWATI", "status": "Hanya Juni", "basil_juni": 91025.0, "basil_juli": 0.0}, {"nomor": "23-00370", "nama": "DIAN NUR FAIZAH", "status": "Hanya Juni", "basil_juni": 112727.0, "basil_juli": 0.0}, {"nomor": "26-00248", "nama": "DINA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00090", "nama": "DINA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 1077989.0}, {"nomor": "26-00238", "nama": "DINDAN SERLY MARIS", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00392", "nama": "DINDAN SERLY MARIS", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 149206.0}, {"nomor": "23-00605", "nama": "DJAYEM", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "23-00136", "nama": "DRS. SOEKAMTO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00180", "nama": "DWI NOOR FITRIANIN", "status": "Hanya Juni", "basil_juni": 490000.0, "basil_juli": 0.0}, {"nomor": "23-00336", "nama": "DWI SETYOWATI", "status": "Hanya Juni", "basil_juni": 142722.0, "basil_juli": 0.0}, {"nomor": "25-00367", "nama": "EKO PRASETYO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 1150000.0}, {"nomor": "25-00487", "nama": "EKO SETYO BUDI UTO", "status": "Hanya Juni", "basil_juni": 94394.0, "basil_juli": 0.0}, {"nomor": "25-00030", "nama": "EKO WIDODO", "status": "Hanya Juni", "basil_juni": 157500.0, "basil_juli": 0.0}, {"nomor": "23-00398", "nama": "ENDANG PRIYANI", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00457", "nama": "ENDANG SRI MURTINI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00191", "nama": "ENI MINARSIH", "status": "Hanya Juni", "basil_juni": 126757.0, "basil_juli": 0.0}, {"nomor": "26-00168", "nama": "ERIC PRATINDO ROSA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 168875.0}, {"nomor": "24-00448", "nama": "FAIZZAL RIZZA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 656650.0}, {"nomor": "25-00510", "nama": "FATONAH", "status": "Hanya Juni", "basil_juni": 108352.0, "basil_juli": 0.0}, {"nomor": "26-00245", "nama": "FITRA MUZAKI AKBAR", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00224", "nama": "GUNAWAN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00122", "nama": "HERIYANTO", "status": "Hanya Juni", "basil_juni": 175000.0, "basil_juli": 0.0}, {"nomor": "24-00167", "nama": "IIM TEGUH NUGROHO", "status": "Hanya Juni", "basil_juni": 140000.0, "basil_juli": 0.0}, {"nomor": "25-00499", "nama": "IKA DESI ARISNAWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 79957.0}, {"nomor": "26-00259", "nama": "IMAM KRISDIANTORO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00387", "nama": "INTIKAH", "status": "Hanya Juni", "basil_juni": 276000.0, "basil_juli": 0.0}, {"nomor": "25-00387", "nama": "ISDIYARTO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 71953.0}, {"nomor": "25-00019", "nama": "JAMIN", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00499", "nama": "JARWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 296271.0}, {"nomor": "26-00232", "nama": "JARWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00329", "nama": "JOKO MUJIONO", "status": "Hanya Juni", "basil_juni": 50690.0, "basil_juli": 0.0}, {"nomor": "26-00252", "nama": "JOKO PRIYONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00056", "nama": "JUMIATI", "status": "Hanya Juni", "basil_juni": 1129532.0, "basil_juli": 0.0}, {"nomor": "26-00153", "nama": "JUWADI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00228", "nama": "JUWARSIH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00465", "nama": "JUWARSIH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 147973.0}, {"nomor": "26-00215", "nama": "JUWARTI", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00530", "nama": "JUWARTI", "status": "Hanya Juni", "basil_juni": 282703.0, "basil_juli": 0.0}, {"nomor": "26-00112", "nama": "JUWARTI", "status": "Hanya Juni", "basil_juni": 44253.0, "basil_juli": 0.0}, {"nomor": "26-00251", "nama": "JUWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00345", "nama": "KANDAR", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00300", "nama": "KASDI", "status": "Hanya Juni", "basil_juni": 342935.0, "basil_juli": 0.0}, {"nomor": "24-00389", "nama": "KASNADI", "status": "Hanya Juni", "basil_juni": 156368.0, "basil_juli": 0.0}, {"nomor": "26-00229", "nama": "KUNTONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00104", "nama": "LADI", "status": "Hanya Juni", "basil_juni": 344357.0, "basil_juli": 0.0}, {"nomor": "25-00467", "nama": "LASIPIN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 562710.0}, {"nomor": "25-00252", "nama": "LASMO", "status": "Hanya Juni", "basil_juni": 120000.0, "basil_juli": 0.0}, {"nomor": "26-00190", "nama": "LILIS ANDRIYANI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00233", "nama": "LINA OKTI PUSPITASA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00060", "nama": "LINTA MAWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 280000.0}, {"nomor": "25-00429", "nama": "MARDI NINGSIH", "status": "Hanya Juni", "basil_juni": 201076.0, "basil_juli": 0.0}, {"nomor": "26-00045", "nama": "MARDIYONO", "status": "Hanya Juni", "basil_juni": 271503.0, "basil_juli": 0.0}, {"nomor": "24-00286", "nama": "MARMI", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00256", "nama": "MOHAMMAD YOGA BA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00014", "nama": "MUGIK", "status": "Hanya Juni", "basil_juni": 70000.0, "basil_juli": 0.0}, {"nomor": "25-00507", "nama": "MUKINI", "status": "Hanya Juni", "basil_juni": 121848.0, "basil_juli": 0.0}, {"nomor": "25-00346", "nama": "NGADI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 399537.0}, {"nomor": "26-00240", "nama": "NUR RIFAL MUSTAKHI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00181", "nama": "NURWATI", "status": "Hanya Juni", "basil_juni": 478000.0, "basil_juli": 0.0}, {"nomor": "25-00456", "nama": "NYAMININGSIH", "status": "Hanya Juni", "basil_juni": 178032.0, "basil_juli": 0.0}, {"nomor": "25-00310", "nama": "PARIYEM EKA FEBRIA", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00242", "nama": "PATMI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00053", "nama": "PUTRI SUSENI", "status": "Hanya Juni", "basil_juni": 293676.0, "basil_juli": 0.0}, {"nomor": "26-00177", "nama": "RACHMADIAN PRAST", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 131061.0}, {"nomor": "26-00179", "nama": "RADI", "status": "Hanya Juni", "basil_juni": 490000.0, "basil_juli": 0.0}, {"nomor": "25-00375", "nama": "RAHMAT HIDAYAT", "status": "Hanya Juni", "basil_juni": 3446098.0, "basil_juli": 0.0}, {"nomor": "26-00205", "nama": "RAHMAT HIDAYAT", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "23-00403", "nama": "RAMI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 29165.0}, {"nomor": "26-00105", "nama": "RATNA DUMILAH", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00236", "nama": "RATNA DUMILAH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00258", "nama": "RATNA DWI WIDIANIN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00487", "nama": "RETNANTO AGUS PRI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 403980.0}, {"nomor": "26-00231", "nama": "RETNANTO AGUS PRI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00338", "nama": "RISWATI", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "23-00389", "nama": "RUMI", "status": "Hanya Juni", "basil_juni": 144957.0, "basil_juli": 0.0}, {"nomor": "25-00070", "nama": "SABAR", "status": "Hanya Juni", "basil_juni": 50690.0, "basil_juli": 0.0}, {"nomor": "24-00078", "nama": "SANI", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00253", "nama": "SANI RAHMAWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00518", "nama": "SANTAR", "status": "Hanya Juni", "basil_juni": 229612.0, "basil_juli": 0.0}, {"nomor": "26-00255", "nama": "SARIYADI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00534", "nama": "SATI", "status": "Hanya Juni", "basil_juni": 65008.0, "basil_juli": 0.0}, {"nomor": "23-00561", "nama": "SETIYOWATI", "status": "Hanya Juni", "basil_juni": 330800.0, "basil_juli": 0.0}, {"nomor": "25-00028", "nama": "SITI ALFIATUN NIKMA", "status": "Hanya Juni", "basil_juni": 1540025.0, "basil_juli": 0.0}, {"nomor": "25-00059", "nama": "SITI JUMIATIN", "status": "Hanya Juni", "basil_juni": 1649126.0, "basil_juli": 0.0}, {"nomor": "25-00399", "nama": "SITI ROKAYA", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 37751.0}, {"nomor": "24-00054", "nama": "SLAMET RIYADI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 30000.0}, {"nomor": "26-00207", "nama": "SRI ANITA WAHYU", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00439", "nama": "SRI ANITA WAHYU", "status": "Hanya Juni", "basil_juni": 72491.0, "basil_juli": 0.0}, {"nomor": "26-00002", "nama": "SRI LUNING PURNIATI", "status": "Hanya Juni", "basil_juni": 257741.0, "basil_juli": 0.0}, {"nomor": "26-00219", "nama": "SRI LUNING PURNIATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 612500.0}, {"nomor": "26-00254", "nama": "SRI MULYATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00066", "nama": "SRI MULYATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 905045.0}, {"nomor": "26-00225", "nama": "SRI SULASIH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00326", "nama": "SRI SULASIH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 42035.0}, {"nomor": "26-00241", "nama": "SRININGSIH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00240", "nama": "SUBADI", "status": "Hanya Juni", "basil_juni": 175000.0, "basil_juli": 0.0}, {"nomor": "24-00316", "nama": "SUDADI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 66466.0}, {"nomor": "23-00077", "nama": "SUDARWATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00415", "nama": "SUDARYANTO", "status": "Hanya Juni", "basil_juni": 52017.0, "basil_juli": 0.0}, {"nomor": "25-00343", "nama": "SUGENG MULYONO S", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 34125.0}, {"nomor": "26-00250", "nama": "SUGENG MULYONO S", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "23-00464", "nama": "SUGITO", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00088", "nama": "SUJADI", "status": "Hanya Juni", "basil_juni": 3388062.0, "basil_juli": 0.0}, {"nomor": "26-00230", "nama": "SUJI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "23-00696", "nama": "SUJIANTO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 3450000.0}, {"nomor": "25-00384", "nama": "SUJITO", "status": "Hanya Juni", "basil_juni": 114605.0, "basil_juli": 0.0}, {"nomor": "25-00410", "nama": "SUKAMIT", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00246", "nama": "SUKESI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00402", "nama": "SUKISNO", "status": "Hanya Juni", "basil_juni": 141250.0, "basil_juli": 0.0}, {"nomor": "25-00012", "nama": "SULASTRI", "status": "Hanya Juni", "basil_juni": 314219.0, "basil_juli": 0.0}, {"nomor": "25-00305", "nama": "SULISTYO RAHAYU NI", "status": "Hanya Juni", "basil_juni": 61976.0, "basil_juli": 0.0}, {"nomor": "26-00141", "nama": "SUMARNO", "status": "Hanya Juni", "basil_juni": 345000.0, "basil_juli": 0.0}, {"nomor": "24-00502", "nama": "SUMIJAN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 126161.0}, {"nomor": "26-00257", "nama": "SUMIJAN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00262", "nama": "SUMIRAH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00234", "nama": "SUMIYATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00005", "nama": "SUNARTO", "status": "Hanya Juni", "basil_juni": 35000.0, "basil_juli": 0.0}, {"nomor": "26-00260", "nama": "SUPARTINI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00059", "nama": "SUPATMI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 320065.0}, {"nomor": "25-00469", "nama": "SUPIAH", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00382", "nama": "SURADI", "status": "Hanya Juni", "basil_juni": 889841.0, "basil_juli": 0.0}, {"nomor": "25-00474", "nama": "SUSENO", "status": "Hanya Juni", "basil_juni": 174351.0, "basil_juli": 0.0}, {"nomor": "25-00103", "nama": "SUTARI", "status": "Hanya Juni", "basil_juni": 996458.0, "basil_juli": 0.0}, {"nomor": "23-00495", "nama": "SUTRISNO", "status": "Hanya Juni", "basil_juni": 69000.0, "basil_juli": 0.0}, {"nomor": "25-00482", "nama": "SUTRISNO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 79957.0}, {"nomor": "20-00390", "nama": "SUTRISNO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00135", "nama": "SUWARNI", "status": "Hanya Juni", "basil_juni": 127766.0, "basil_juli": 0.0}, {"nomor": "25-00385", "nama": "SUWARTINI", "status": "Hanya Juni", "basil_juni": 114605.0, "basil_juli": 0.0}, {"nomor": "25-00511", "nama": "SUWARTO", "status": "Hanya Juni", "basil_juni": 141352.0, "basil_juli": 0.0}, {"nomor": "26-00244", "nama": "SUYATI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "24-00548", "nama": "SUYENI", "status": "Hanya Juni", "basil_juni": 805000.0, "basil_juli": 0.0}, {"nomor": "25-00262", "nama": "SUYONO", "status": "Hanya Juni", "basil_juni": 319636.0, "basil_juli": 0.0}, {"nomor": "25-00428", "nama": "TITIK ASMONAH", "status": "Hanya Juni", "basil_juni": 347003.0, "basil_juli": 0.0}, {"nomor": "26-00243", "nama": "TIYONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00249", "nama": "TRIANDRY PRAMONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00235", "nama": "WAHYU PUTRI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "26-00150", "nama": "WARSONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00495", "nama": "WARTINI", "status": "Hanya Juni", "basil_juni": 1059257.0, "basil_juli": 0.0}, {"nomor": "26-00227", "nama": "WINDA SARI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "25-00188", "nama": "WITONO", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 591900.0}, {"nomor": "25-00544", "nama": "WIWIK SUPARMIATI", "status": "Hanya Juni", "basil_juni": 151688.0, "basil_juli": 0.0}, {"nomor": "25-00200", "nama": "YANTO", "status": "Hanya Juni", "basil_juni": 0.0, "basil_juli": 0.0}, {"nomor": "23-00722", "nama": "YULIATUN", "status": "Hanya Juni", "basil_juni": 162313.0, "basil_juli": 0.0}, {"nomor": "24-00494", "nama": "YUYUK SRI WAHYUNI", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 190135.0}, {"nomor": "26-00239", "nama": "ZAENUL MUTTAQIN", "status": "Hanya Juli", "basil_juni": 0.0, "basil_juli": 0.0}], "recap": {"total_nama_sudah": 288, "total_nama_belum": 165, "selisih_nama": 123, "total_basil_sudah_juni": 69844660.0, "total_basil_sudah_juli": 70152113.0, "selisih_sudah": -307453.0, "total_basil_belum_juni": 28791714.0, "total_basil_belum_juli": 14055628.0, "selisih_belum": 14736086.0, "selisih_total_basil": 97149431.0}};
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+const NUM_PERIODS = 3;
+const periods = Array.from({length: NUM_PERIODS}, (_, i) => ({
+  idx: i,
+  label: 'Periode ' + (i+1),
+  rawText: '',
+  parsedRows: [],   // [{nomor, nama, numbers:[...]}]
+  maxNumCols: 0,
+  basilColIndex: null,
+  records: null      // finalized: [{nomor, nama, basil}]
+}));
+
+// ---------------- Build input UI ----------------
+const grid = document.getElementById('periodGrid');
+grid.innerHTML = periods.map(p => `
+  <div class="period-box" id="box-${p.idx}" style="${p.idx===2 ? 'display:none;' : ''}">
+    <h3>Data ${p.idx+1}</h3>
+    <div id="pdfArea-${p.idx}">
+      <label class="btn small" for="file-${p.idx}" style="display:inline-block;">📁 Unggah PDF</label>
+      <input type="file" id="file-${p.idx}" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(${p.idx}, this.files[0])">
+      <div class="status-line" id="filename-${p.idx}" style="margin:2px 0 6px;"></div>
+    </div>
+    <textarea id="text-${p.idx}" style="display:none;"></textarea>
+    <div>
+      <button class="btn small gray" onclick="resetPeriod(${p.idx})">↺ Reset</button>
+    </div>
+    <div class="status-line" id="status-${p.idx}">Belum ada data.</div>
+    <div id="colSelectWrap-${p.idx}" style="display:none;">
+      <label style="font-size:12px;color:var(--gray);">Kolom angka untuk <b>Basil</b>:</label><br>
+      <select class="col-select" id="colSelect-${p.idx}" onchange="renderPreview(${p.idx})"></select>
+    </div>
+    <div class="preview-scroll" id="preview-${p.idx}" style="display:none;"></div>
+    <div id="confirmWrap-${p.idx}" style="display:none;">
+      <button class="btn small" onclick="addManualRow(${p.idx})">+ Tambah Baris Manual</button>
+      <button class="btn small" onclick="confirmPeriod(${p.idx})">✅ Konfirmasi Data ${p.idx+1}</button>
+    </div>
+  </div>
+`).join('');
+
+function showThirdPeriod(){
+  document.getElementById('box-2').style.display = 'block';
+  document.getElementById('btnAddThird').style.display = 'none';
+}
+
+// ---------------- PDF text extraction ----------------
+async function handlePdfUpload(idx, file){
+  if(!file) return;
+  const statusEl = document.getElementById('status-'+idx);
+  const filenameEl = document.getElementById('filename-'+idx);
+  filenameEl.textContent = '📄 File: ' + file.name;
+  periods[idx].label = file.name.replace(/\.pdf$/i, '');
+  statusEl.textContent = 'Mengekstrak teks dari PDF...';
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let lines = [];
+    for(let pnum=1; pnum<=pdf.numPages; pnum++){
+      const page = await pdf.getPage(pnum);
+      const content = await page.getTextContent();
+      const rows = {};
+      content.items.forEach(it=>{
+        const y = Math.round(it.transform[5]);
+        if(!rows[y]) rows[y] = [];
+        rows[y].push({x: it.transform[4], str: it.str});
+      });
+      const ys = Object.keys(rows).map(Number).sort((a,b)=>b-a);
+      ys.forEach(y=>{
+        const sorted = rows[y].sort((a,b)=>a.x-b.x);
+        lines.push(sorted.map(s=>s.str).join(' '));
+      });
+    }
+    const text = lines.join('\n');
+    document.getElementById('text-'+idx).value = text;
+    periods[idx].rawText = text;
+    statusEl.textContent = 'Teks berhasil diekstrak (' + pdf.numPages + ' halaman). Memproses...';
+    doParse(idx);
+  }catch(err){
+    statusEl.textContent = 'Gagal membaca PDF: ' + err.message + '. Coba unggah ulang filenya.';
+  }
+}
+
+// ---------------- Parsing ----------------
+function parseRupiah(s){
+  s = (s||'').trim();
+  if(s.includes(',')){
+    s = s.replace(/\./g,'').replace(',', '.');
+  } else {
+    s = s.replace(/\./g,'');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function parseRows(text){
+  const lines = text.split('\n');
+  const kontrakRe = /(\d{2}-\d{5})/;
+  const numRe = /-?\d{1,3}(?:\.\d{3})*(?:,\d+)?|-?\d+(?:,\d+)?/g;
+  const rows = [];
+  lines.forEach(line=>{
+    if(!line.trim()) return;
+    const km = line.match(kontrakRe);
+    if(km){
+      const nomor = km[1];
+      const after = line.slice(km.index + nomor.length);
+      const nums = after.match(numRe) || [];
+      let nameEnd = after.length;
+      if(nums.length){
+        const firstIdx = after.indexOf(nums[0]);
+        if(firstIdx >= 0) nameEnd = firstIdx;
+      }
+      const nama = after.slice(0, nameEnd).trim().replace(/\s+/g,' ');
+      if(nama){
+        rows.push({nomor, nama, numbers: nums.map(parseRupiah)});
+      }
+    } else {
+      const parts = line.split(/\t|;|\s{2,}/).map(s=>s.trim()).filter(Boolean);
+      if(parts.length >= 3 && /[a-zA-Z]/.test(parts[1])){
+        const numbers = parts.slice(2).map(parseRupiah).filter(n=>!isNaN(n));
+        if(numbers.length){
+          rows.push({nomor: parts[0], nama: parts[1], numbers});
+        }
+      }
+    }
+  });
+  return rows;
+}
+
+function doParse(idx){
+  const text = document.getElementById('text-'+idx).value;
+  const statusEl = document.getElementById('status-'+idx);
+  if(!text.trim()){
+    statusEl.textContent = 'Kotak teks masih kosong.';
+    return;
+  }
+  const rows = parseRows(text);
+  if(!rows.length){
+    statusEl.textContent = 'Tidak ada baris yang berhasil dikenali. Periksa format teks, atau tambahkan baris manual.';
+    periods[idx].parsedRows = [];
+  } else {
+    statusEl.textContent = rows.length + ' baris berhasil dikenali. Pilih kolom Basil lalu periksa pratinjau.';
+  }
+  periods[idx].parsedRows = rows;
+  periods[idx].maxNumCols = rows.reduce((m,r)=>Math.max(m, r.numbers.length), 0);
+
+  const colWrap = document.getElementById('colSelectWrap-'+idx);
+  const colSelect = document.getElementById('colSelect-'+idx);
+  if(periods[idx].maxNumCols > 0){
+    colSelect.innerHTML = Array.from({length: periods[idx].maxNumCols}, (_,i)=>
+      `<option value="${i}">Angka ke-${i+1}</option>`
+    ).join('');
+    colSelect.value = periods[idx].maxNumCols - 1; // default: kolom terakhir
+    periods[idx].basilColIndex = periods[idx].maxNumCols - 1;
+    colWrap.style.display = 'block';
+  } else {
+    colWrap.style.display = 'none';
+  }
+  document.getElementById('confirmWrap-'+idx).style.display = rows.length ? 'block' : 'block';
+  renderPreview(idx);
+}
+
+function renderPreview(idx){
+  const p = periods[idx];
+  const colSelect = document.getElementById('colSelect-'+idx);
+  if(colSelect && colSelect.value !== '') p.basilColIndex = parseInt(colSelect.value, 10);
+  const container = document.getElementById('preview-'+idx);
+  if(!p.parsedRows.length){
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+  container.innerHTML = `
+    <table>
+      <thead><tr><th>Nomor</th><th>Nama</th><th class="num">Basil (terpilih)</th><th></th></tr></thead>
+      <tbody>
+        ${p.parsedRows.map((r, ri) => `
+          <tr>
+            <td contenteditable="true" onblur="editCell(${idx},${ri},'nomor',this.textContent)">${r.nomor}</td>
+            <td contenteditable="true" onblur="editCell(${idx},${ri},'nama',this.textContent)">${r.nama}</td>
+            <td class="num" contenteditable="true" onblur="editCell(${idx},${ri},'basil',this.textContent)">${
+              r.numbers[p.basilColIndex] !== undefined ? fmtNum(r.numbers[p.basilColIndex]) : '-'
+            }</td>
+            <td><button class="btn small gray" onclick="deleteRow(${idx},${ri})">✕</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function editCell(idx, ri, field, value){
+  const p = periods[idx];
+  const row = p.parsedRows[ri];
+  if(!row) return;
+  if(field === 'nomor') row.nomor = value.trim();
+  else if(field === 'nama') row.nama = value.trim();
+  else if(field === 'basil'){
+    if(!row.numbers) row.numbers = [];
+    row.numbers[p.basilColIndex] = parseRupiah(value);
+  }
+}
+
+function deleteRow(idx, ri){
+  periods[idx].parsedRows.splice(ri, 1);
+  renderPreview(idx);
+}
+
+function addManualRow(idx){
+  const p = periods[idx];
+  const cols = Math.max(p.maxNumCols, 1);
+  const numbers = new Array(cols).fill(0);
+  p.parsedRows.push({nomor:'00-00000', nama:'NAMA BARU', numbers});
+  if(p.basilColIndex === null) p.basilColIndex = cols - 1;
+  document.getElementById('colSelectWrap-'+idx).style.display = 'block';
+  const colSelect = document.getElementById('colSelect-'+idx);
+  if(!colSelect.options.length){
+    colSelect.innerHTML = Array.from({length: cols}, (_,i)=>`<option value="${i}">Angka ke-${i+1}</option>`).join('');
+    colSelect.value = p.basilColIndex;
+  }
+  renderPreview(idx);
+}
+
+function resetPeriod(idx){
+  periods[idx].rawText = '';
+  periods[idx].parsedRows = [];
+  periods[idx].records = null;
+  periods[idx].basilColIndex = null;
+  periods[idx].label = 'Data ' + (idx+1);
+  document.getElementById('text-'+idx).value = '';
+  document.getElementById('file-'+idx).value = '';
+  document.getElementById('filename-'+idx).textContent = '';
+  document.getElementById('status-'+idx).textContent = 'Belum ada data.';
+  document.getElementById('status-'+idx).classList.remove('ok');
+  document.getElementById('preview-'+idx).style.display = 'none';
+  document.getElementById('colSelectWrap-'+idx).style.display = 'none';
+  document.getElementById('confirmWrap-'+idx).style.display = 'none';
+  updateCompareButton();
+}
+
+function confirmPeriod(idx){
+  const p = periods[idx];
+  if(!p.parsedRows.length){
+    alert('Belum ada baris data untuk periode ini.');
+    return;
+  }
+  p.records = p.parsedRows.map(r => ({
+    nomor: r.nomor,
+    nama: r.nama,
+    basil: r.numbers[p.basilColIndex] !== undefined ? r.numbers[p.basilColIndex] : 0
+  }));
+  const statusEl = document.getElementById('status-'+idx);
+  statusEl.textContent = '✔ Dikonfirmasi: ' + p.records.length + ' data siap dibandingkan.';
+  statusEl.classList.add('ok');
+  updateCompareButton();
+}
+
+function updateCompareButton(){
+  const filledCount = periods.filter(p => p.records && p.records.length).length;
+  const btn = document.getElementById('btnCompare');
+  const st = document.getElementById('compareStatus');
+  btn.disabled = filledCount < 2;
+  st.textContent = filledCount < 2
+    ? 'Minimal 2 data harus dikonfirmasi terlebih dahulu. (' + filledCount + '/2)'
+    : filledCount + ' data siap dibandingkan: ' + periods.filter(p=>p.records&&p.records.length).map(p=>p.label).join(', ');
+}
+
+// ---------------- Formatting ----------------
 function fmtRp(n){
   const sign = n < 0 ? '-' : '';
   n = Math.abs(Math.round(n));
   return sign + 'Rp ' + n.toLocaleString('id-ID');
 }
 function fmtNum(n){ return Math.round(n).toLocaleString('id-ID'); }
-
 function cls(n){ return n > 0 ? 'pos' : (n < 0 ? 'neg' : 'zero'); }
 
-// ---- Summary cards ----
-const r = DATA.recap;
-const cards = [
-  {label:'Total Nama Sudah Bayar', value: fmtNum(r.total_nama_sudah), sub:'nomor kontrak cocok Juni & Juli', kind:'green'},
-  {label:'Total Nama Belum Bayar', value: fmtNum(r.total_nama_belum), sub:'hanya tercatat di salah satu bulan', kind:'red'},
-  {label:'Basil Sudah Bayar (Juni)', value: fmtRp(r.total_basil_sudah_juni), sub:'vs Juli: '+fmtRp(r.total_basil_sudah_juli), kind:'green'},
-  {label:'Selisih Basil Sudah Bayar', value: fmtRp(r.selisih_sudah), sub:'Juni − Juli', kind:'green'},
-  {label:'Basil Belum Bayar (Juni)', value: fmtRp(r.total_basil_belum_juni), sub:'vs Juli: '+fmtRp(r.total_basil_belum_juli), kind:'red'},
-  {label:'Selisih Basil Belum Bayar', value: fmtRp(r.selisih_belum), sub:'Juni − Juli', kind:'red'},
-];
-document.getElementById('summaryCards').innerHTML = cards.map(c => `
-  <div class="card ${c.kind}">
-    <div class="label">${c.label}</div>
-    <div class="value">${c.value}</div>
-    <div class="sub">${c.sub}</div>
-  </div>
-`).join('');
+// ---------------- Compare & render results ----------------
+document.getElementById('btnCompare').addEventListener('click', compareAll);
 
-document.getElementById('sudahCount').textContent = r.total_nama_sudah + ' orang';
-document.getElementById('belumCount').textContent = r.total_nama_belum + ' orang';
+function compareAll(){
+  const filled = periods.filter(p => p.records && p.records.length);
+  if(filled.length < 2) return;
 
-// ---- Table: Sudah Bayar ----
-function renderSudah(rows){
-  const tbody = document.querySelector('#tableSudah tbody');
-  tbody.innerHTML = rows.map(x => `
-    <tr>
-      <td>${x.nomor}</td>
-      <td>${x.nama}</td>
-      <td class="num">${fmtRp(x.basil_juni)}</td>
-      <td class="num">${fmtRp(x.basil_juli)}</td>
-      <td class="num ${cls(x.selisih)}">${fmtRp(x.selisih)}</td>
-    </tr>
-  `).join('');
-}
-renderSudah(DATA.sudah_bayar);
-
-// ---- Table: Belum Bayar ----
-function renderBelum(rows){
-  const tbody = document.querySelector('#tableBelum tbody');
-  tbody.innerHTML = rows.map(x => `
-    <tr>
-      <td>${x.nomor}</td>
-      <td>${x.nama}</td>
-      <td><span class="status-tag ${x.status==='Hanya Juni'?'juni':'juli'}">${x.status}</span></td>
-      <td class="num">${x.basil_juni ? fmtRp(x.basil_juni) : '-'}</td>
-      <td class="num">${x.basil_juli ? fmtRp(x.basil_juli) : '-'}</td>
-    </tr>
-  `).join('');
-}
-renderBelum(DATA.belum_bayar);
-
-// ---- Search filters ----
-document.getElementById('searchSudah').addEventListener('input', e => {
-  const q = e.target.value.toLowerCase();
-  const filtered = DATA.sudah_bayar.filter(x => x.nama.toLowerCase().includes(q) || x.nomor.toLowerCase().includes(q));
-  renderSudah(filtered);
-});
-document.getElementById('searchBelum').addEventListener('input', e => {
-  const q = e.target.value.toLowerCase();
-  const filtered = DATA.belum_bayar.filter(x => x.nama.toLowerCase().includes(q) || x.nomor.toLowerCase().includes(q));
-  renderBelum(filtered);
-});
-
-// ---- Sortable headers ----
-function makeSortable(tableId, dataRef, renderFn){
-  const table = document.getElementById(tableId);
-  let sortState = {};
-  table.querySelectorAll('thead th[data-key]').forEach(th => {
-    th.addEventListener('click', () => {
-      const key = th.dataset.key;
-      sortState.dir = (sortState.key === key && sortState.dir === 'asc') ? 'desc' : 'asc';
-      sortState.key = key;
-      const sorted = [...dataRef].sort((a,b) => {
-        let va = a[key], vb = b[key];
-        if (typeof va === 'string'){ va = va.toLowerCase(); vb = vb.toLowerCase(); }
-        if (va < vb) return sortState.dir === 'asc' ? -1 : 1;
-        if (va > vb) return sortState.dir === 'asc' ? 1 : -1;
-        return 0;
-      });
-      renderFn(sorted);
+  const map = {};
+  filled.forEach((p, pi) => {
+    p.records.forEach(r => {
+      const key = r.nomor;
+      if(!map[key]) map[key] = {nomor: r.nomor, nama: r.nama, values: new Array(filled.length).fill(null)};
+      map[key].values[pi] = r.basil;
+      if(!map[key].nama) map[key].nama = r.nama;
     });
   });
+  const all = Object.values(map);
+  const lengkap = all.filter(x => x.values.every(v => v !== null));
+  const tidak = all.filter(x => x.values.some(v => v === null));
+
+  renderResults(filled, lengkap, tidak);
 }
-makeSortable('tableSudah', DATA.sudah_bayar, renderSudah);
-makeSortable('tableBelum', DATA.belum_bayar, renderBelum);
 
-// ---- Recap table ----
-const recapRows = [
-  ['Jumlah Nama (orang)', fmtNum(r.total_nama_sudah), fmtNum(r.total_nama_belum), fmtNum(r.selisih_nama)],
-  ['Total Basil Juni', fmtRp(r.total_basil_sudah_juni), fmtRp(r.total_basil_belum_juni), fmtRp(r.total_basil_sudah_juni - r.total_basil_belum_juni)],
-  ['Total Basil Juli', fmtRp(r.total_basil_sudah_juli), fmtRp(r.total_basil_belum_juli), fmtRp(r.total_basil_sudah_juli - r.total_basil_belum_juli)],
-];
-const sudahJuliMinusJuni = r.total_basil_sudah_juli - r.total_basil_sudah_juni;
-const belumJuliMinusJuni = r.total_basil_belum_juli - r.total_basil_belum_juni;
-const totalRow = ['Selisih Basil (Juli - Juni)',
-  fmtRp(sudahJuliMinusJuni),
-  fmtRp(belumJuliMinusJuni),
-  fmtRp(sudahJuliMinusJuni - belumJuliMinusJuni)];
+function renderResults(filled, lengkap, tidak){
+  const labels = filled.map(p => p.label);
+  const n = filled.length;
 
-document.getElementById('recapBody').innerHTML =
-  recapRows.map(row => `<tr><td>${row[0]}</td><td class="num">${row[1]}</td><td class="num">${row[2]}</td><td class="num">${row[3]}</td></tr>`).join('')
-  + `<tr class="total-row"><td>${totalRow[0]}</td><td class="num">${totalRow[1]}</td><td class="num">${totalRow[2]}</td><td class="num">${totalRow[3]}</td></tr>`;
+  // ---- summary sums ----
+  const sumSudahPer = labels.map((_, i) => lengkap.reduce((s,x)=>s+(x.values[i]||0), 0));
+  const sumBelumPer = labels.map((_, i) => tidak.reduce((s,x)=>s+(x.values[i]||0), 0));
+
+  // ---- summary cards (meniru gaya: Sudah Bayar / Belum Bayar) ----
+  let cards = [
+    {label:'Total Nama Sudah Bayar', value: fmtNum(lengkap.length), sub:'nomor kontrak cocok ' + labels.join(' & '), kind:'green'},
+    {label:'Total Nama Belum Bayar', value: fmtNum(tidak.length), sub:'hanya tercatat di sebagian data', kind:'red'},
+    {label:'Basil Sudah Bayar ('+labels[0]+')', value: fmtRp(sumSudahPer[0]), sub:'vs '+labels[1]+': '+fmtRp(sumSudahPer[1]) + (n>2 ? ', '+labels[2]+': '+fmtRp(sumSudahPer[2]) : ''), kind:'green'},
+    {label:'Selisih Basil Sudah Bayar', value: fmtRp(sumSudahPer[0]-sumSudahPer[1]), sub: labels[0]+' - '+labels[1], kind:'green'},
+    {label:'Basil Belum Bayar ('+labels[0]+')', value: fmtRp(sumBelumPer[0]), sub:'vs '+labels[1]+': '+fmtRp(sumBelumPer[1]) + (n>2 ? ', '+labels[2]+': '+fmtRp(sumBelumPer[2]) : ''), kind:'red'},
+    {label:'Selisih Basil Belum Bayar', value: fmtRp(sumBelumPer[0]-sumBelumPer[1]), sub: labels[0]+' - '+labels[1], kind:'red'},
+  ];
+  if(n > 2){
+    for(let i=1; i<n-1; i++){
+      cards.push({label:'Selisih Basil Sudah Bayar ('+labels[i]+' - '+labels[i+1]+')', value: fmtRp(sumSudahPer[i]-sumSudahPer[i+1]), sub:'', kind:'green'});
+      cards.push({label:'Selisih Basil Belum Bayar ('+labels[i]+' - '+labels[i+1]+')', value: fmtRp(sumBelumPer[i]-sumBelumPer[i+1]), sub:'', kind:'red'});
+    }
+  }
+
+  // ---- table headers ----
+  const sudahHeaders = ['Nomor Kontrak','Nama', ...labels.map(l=>'Basil '+l)];
+  for(let i=0;i<n-1;i++) sudahHeaders.push('Selisih ('+labels[i]+' - '+labels[i+1]+')');
+
+  const belumHeaders = ['Nomor Kontrak','Nama','Status', ...labels.map(l=>'Basil '+l)];
+
+  const html = `
+    <div class="cards">${cards.map(c => `
+      <div class="card ${c.kind}">
+        <div class="label">${c.label}</div>
+        <div class="value">${c.value}</div>
+        ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}
+      </div>
+    `).join('')}</div>
+
+    <section class="sudah">
+      <div class="sec-head">
+        <h2>✅ Sudah Bayar <span class="badge green">${lengkap.length} orang</span></h2>
+        <input type="text" class="search-box" id="searchSudah" placeholder="Cari nama / nomor kontrak...">
+      </div>
+      <div class="table-scroll">
+        <table id="tableSudah">
+          <thead><tr>${sudahHeaders.map((h,i)=>`<th data-key="${i}" class="${i>1?'num':''}">${h}</th>`).join('')}</tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="belum">
+      <div class="sec-head">
+        <h2>⚠️ Belum Bayar <span class="badge red">${tidak.length} orang</span></h2>
+        <input type="text" class="search-box" id="searchBelum" placeholder="Cari nama / nomor kontrak...">
+      </div>
+      <div class="table-scroll">
+        <table id="tableBelum">
+          <thead><tr>${belumHeaders.map((h,i)=>`<th data-key="${i}" class="${i>2?'num':''}">${h}</th>`).join('')}</tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="recap">
+      <div class="sec-head"><h2>📊 Rekap Selisih Sudah Bayar vs Belum Bayar</h2></div>
+      <table class="recap-table">
+        <thead><tr><th>Keterangan</th><th class="num">Sudah Bayar</th><th class="num">Belum Bayar</th><th class="num">Selisih (Sudah - Belum)</th></tr></thead>
+        <tbody>
+          <tr><td>Jumlah Nama (orang)</td><td class="num">${fmtNum(lengkap.length)}</td><td class="num">${fmtNum(tidak.length)}</td><td class="num">${fmtNum(lengkap.length-tidak.length)}</td></tr>
+          ${labels.map((lb,i)=>`<tr><td>Total Basil ${lb}</td><td class="num">${fmtRp(sumSudahPer[i])}</td><td class="num">${fmtRp(sumBelumPer[i])}</td><td class="num">${fmtRp(sumSudahPer[i]-sumBelumPer[i])}</td></tr>`).join('')}
+          <tr class="total-row"><td>Selisih Basil (${labels[1]} - ${labels[0]})</td><td class="num">${fmtRp(sumSudahPer[1]-sumSudahPer[0])}</td><td class="num">${fmtRp(sumBelumPer[1]-sumBelumPer[0])}</td><td class="num">${fmtRp((sumSudahPer[1]-sumSudahPer[0])-(sumBelumPer[1]-sumBelumPer[0]))}</td></tr>
+        </tbody>
+      </table>
+    </section>
+  `;
+  document.getElementById('resultsArea').innerHTML = html;
+
+  function rowSudah(x){
+    return `<tr>
+      <td>${x.nomor}</td><td>${x.nama}</td>
+      ${x.values.map(v=>`<td class="num">${fmtRp(v)}</td>`).join('')}
+      ${Array.from({length:n-1}, (_,i)=>{
+        const d = x.values[i]-x.values[i+1];
+        return `<td class="num ${cls(d)}">${fmtRp(d)}</td>`;
+      }).join('')}
+    </tr>`;
+  }
+  function renderSudahRows(rows){
+    document.querySelector('#tableSudah tbody').innerHTML = rows.map(rowSudah).join('');
+  }
+  function rowBelum(x){
+    const presentIdx = labels.map((l,i)=>x.values[i]!==null ? i : null).filter(i=>i!==null);
+    let status, cls2;
+    if(presentIdx.length === 1){
+      status = 'Hanya ' + labels[presentIdx[0]];
+      cls2 = 'p' + presentIdx[0];
+    } else {
+      const present = presentIdx.map(i=>labels[i]);
+      status = 'Ada di: ' + present.join(', ');
+      cls2 = 'p' + presentIdx[0];
+    }
+    return `<tr>
+      <td>${x.nomor}</td><td>${x.nama}</td>
+      <td><span class="status-tag ${cls2}">${status}</span></td>
+      ${x.values.map(v=> v===null ? '<td class="num">-</td>' : `<td class="num">${fmtRp(v)}</td>`).join('')}
+    </tr>`;
+  }
+  function renderBelumRows(rows){
+    document.querySelector('#tableBelum tbody').innerHTML = rows.map(rowBelum).join('');
+  }
+  renderSudahRows(lengkap);
+  renderBelumRows(tidak);
+
+  document.getElementById('searchSudah').addEventListener('input', e=>{
+    const q = e.target.value.toLowerCase();
+    renderSudahRows(lengkap.filter(x => x.nama.toLowerCase().includes(q) || x.nomor.toLowerCase().includes(q)));
+  });
+  document.getElementById('searchBelum').addEventListener('input', e=>{
+    const q = e.target.value.toLowerCase();
+    renderBelumRows(tidak.filter(x => x.nama.toLowerCase().includes(q) || x.nomor.toLowerCase().includes(q)));
+  });
+
+  // sortable headers
+  function makeSortable(tableId, dataRef, renderFn, getVal){
+    const table = document.getElementById(tableId);
+    let sortState = {};
+    table.querySelectorAll('thead th[data-key]').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.key;
+        sortState.dir = (sortState.key === key && sortState.dir === 'asc') ? 'desc' : 'asc';
+        sortState.key = key;
+        const sorted = [...dataRef].sort((a,b) => {
+          let va = getVal(a, key), vb = getVal(b, key);
+          if (typeof va === 'string'){ va = va.toLowerCase(); vb = vb.toLowerCase(); }
+          if (va < vb) return sortState.dir === 'asc' ? -1 : 1;
+          if (va > vb) return sortState.dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+        renderFn(sorted);
+      });
+    });
+  }
+  makeSortable('tableSudah', lengkap, renderSudahRows, (x,key)=>{
+    const k = parseInt(key,10);
+    if(k===0) return x.nomor;
+    if(k===1) return x.nama;
+    if(k < 2+n) return x.values[k-2];
+    return x.values[k-2-n] - x.values[k-2-n+1];
+  });
+  makeSortable('tableBelum', tidak, renderBelumRows, (x,key)=>{
+    const k = parseInt(key,10);
+    if(k===0) return x.nomor;
+    if(k===1) return x.nama;
+    if(k===2) return x.values.filter(v=>v!==null).length;
+    return x.values[k-3] === null ? -Infinity : x.values[k-3];
+  });
+}
+
+
+updateCompareButton();
 </script>
 
 </body>
