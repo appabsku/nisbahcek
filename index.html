@@ -104,8 +104,8 @@
   <section class="input">
     <div class="sec-head"><h2>📥 Input Data (Data 1 &amp; Data 2)</h2></div>
     <div class="hint" style="padding:14px 20px 0;">
-      Tugas utama: bandingkan <b>2 data</b> (mis. Juni vs Juli, atau bulan apa saja). Untuk tiap data, klik <b>Unggah PDF</b> — teks otomatis diekstrak &amp; diproses, dan nama data mengikuti nama file PDF yang diunggah.
-      Setelah diproses, pilih kolom angka mana yang merupakan <b>Basil</b>, periksa hasil pada tabel pratinjau (bisa diedit langsung), lalu klik <b>Konfirmasi</b>.
+      Tugas utama: bandingkan <b>2 data</b> (mis. Juni vs Juli, atau bulan apa saja, opsional sampai 3 data). Untuk tiap data, klik <b>Unggah PDF</b> — seluruh baris otomatis dibaca (tanpa batas jumlah baris), dan nama data mengikuti nama file PDF yang diunggah.
+      Setelah diproses, tentukan kolom mana yang <b>Nomor Kontrak</b>, <b>Nama</b>, dan <b>Basil</b> (kolom lain seperti Pembiayaan/Pokok otomatis diabaikan dan tidak ditampilkan), periksa hasil pada tabel pratinjau (bisa diedit langsung), lalu klik <b>Konfirmasi</b>.
     </div>
     <div class="period-grid" id="periodGrid"></div>
     <div style="padding:0 20px 16px;">
@@ -132,10 +132,10 @@ const NUM_PERIODS = 3;
 const periods = Array.from({length: NUM_PERIODS}, (_, i) => ({
   idx: i,
   label: 'Periode ' + (i+1),
-  rawText: '',
-  parsedRows: [],   // [{nomor, nama, numbers:[...]}]
-  maxNumCols: 0,
-  basilColIndex: null,
+  grid: [],          // baris x kolom mentah hasil ekstraksi PDF
+  colLabels: [],     // nama kolom terdeteksi (dari header PDF) atau "Kolom N"
+  parsedRows: [],    // [{nomor, nama, numbers:[basil]}] setelah kolom dipilih
+  basilColIndex: 0,
   records: null      // finalized: [{nomor, nama, basil}]
 }));
 
@@ -149,14 +149,18 @@ grid.innerHTML = periods.map(p => `
       <input type="file" id="file-${p.idx}" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(${p.idx}, this.files[0])">
       <div class="status-line" id="filename-${p.idx}" style="margin:2px 0 6px;"></div>
     </div>
-    <textarea id="text-${p.idx}" style="display:none;"></textarea>
     <div>
       <button class="btn small gray" onclick="resetPeriod(${p.idx})">↺ Reset</button>
+      ${p.idx===2 ? `<button class="btn small gray" onclick="removeThirdPeriod()">🗑 Hapus Data 3</button>` : ''}
     </div>
     <div class="status-line" id="status-${p.idx}">Belum ada data.</div>
     <div id="colSelectWrap-${p.idx}" style="display:none;">
-      <label style="font-size:12px;color:var(--gray);">Kolom angka untuk <b>Basil</b>:</label><br>
-      <select class="col-select" id="colSelect-${p.idx}" onchange="renderPreview(${p.idx})"></select>
+      <label style="font-size:12px;color:var(--gray);">Kolom mana yang <b>Nomor Kontrak</b>, <b>Nama</b>, dan <b>Basil</b>? (kolom lain diabaikan)</label>
+      <table style="width:100%;margin:6px 0 8px;"><tr>
+        <td style="padding:2px 4px 2px 0;"><select class="col-select" style="width:100%;" id="colNomor-${p.idx}" onchange="buildParsedRowsFromGrid(${p.idx}); renderPreview(${p.idx});"></select></td>
+        <td style="padding:2px 4px;"><select class="col-select" style="width:100%;" id="colNama-${p.idx}" onchange="buildParsedRowsFromGrid(${p.idx}); renderPreview(${p.idx});"></select></td>
+        <td style="padding:2px 0 2px 4px;"><select class="col-select" style="width:100%;" id="colBasil-${p.idx}" onchange="buildParsedRowsFromGrid(${p.idx}); renderPreview(${p.idx});"></select></td>
+      </tr></table>
     </div>
     <div class="preview-scroll" id="preview-${p.idx}" style="display:none;"></div>
     <div id="confirmWrap-${p.idx}" style="display:none;">
@@ -171,7 +175,14 @@ function showThirdPeriod(){
   document.getElementById('btnAddThird').style.display = 'none';
 }
 
-// ---------------- PDF text extraction ----------------
+function removeThirdPeriod(){
+  resetPeriod(2);
+  document.getElementById('box-2').style.display = 'none';
+  document.getElementById('btnAddThird').style.display = 'inline-block';
+  updateCompareButton();
+}
+
+// ---------------- PDF text extraction (berbasis grid kolom, bukan tebak-tebakan regex) ----------------
 async function handlePdfUpload(idx, file){
   if(!file) return;
   const statusEl = document.getElementById('status-'+idx);
@@ -182,47 +193,161 @@ async function handlePdfUpload(idx, file){
   try{
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-    let lines = [];
+    let itemsByRow = [];
     for(let pnum=1; pnum<=pdf.numPages; pnum++){
       const page = await pdf.getPage(pnum);
       const content = await page.getTextContent();
-      const rows = {};
+      const rowMap = {};
       content.items.forEach(it=>{
+        if(!it.str || !it.str.trim()) return;
         const yRaw = it.transform[5];
         // toleransi 2px agar teks pada baris visual yang sama tidak terpecah jadi baris berbeda
         const yKey = Math.round(yRaw / 2) * 2;
-        if(!rows[yKey]) rows[yKey] = [];
-        rows[yKey].push({x: it.transform[4], str: it.str, width: it.width});
+        if(!rowMap[yKey]) rowMap[yKey] = [];
+        rowMap[yKey].push({x: it.transform[4], str: it.str, width: it.width});
       });
-      const ys = Object.keys(rows).map(Number).sort((a,b)=>b-a);
-      ys.forEach(y=>{
-        const sorted = rows[y].sort((a,b)=>a.x-b.x);
-        let line = '';
-        let prevEnd = null;
-        sorted.forEach(s=>{
-          const w = (s.width && s.width > 0) ? s.width : s.str.length * 5;
-          if(prevEnd !== null){
-            const gap = s.x - prevEnd;
-            // jarak antar kolom biasanya jauh lebih lebar daripada jarak antar kata dalam 1 sel
-            line += gap > 8 ? '\t' : ' ';
-          }
-          line += s.str;
-          prevEnd = s.x + w;
-        });
-        lines.push(line);
-      });
+      const ys = Object.keys(rowMap).map(Number).sort((a,b)=>b-a);
+      ys.forEach(y => itemsByRow.push({y, items: rowMap[y]}));
     }
-    const text = lines.join('\n');
-    document.getElementById('text-'+idx).value = text;
-    periods[idx].rawText = text;
-    statusEl.textContent = 'Teks berhasil diekstrak (' + pdf.numPages + ' halaman). Memproses...';
-    doParse(idx);
+    statusEl.textContent = 'Mendeteksi kolom (' + pdf.numPages + ' halaman, ' + itemsByRow.length + ' baris terdeteksi)...';
+    processGrid(idx, itemsByRow);
   }catch(err){
     statusEl.textContent = 'Gagal membaca PDF: ' + err.message + '. Coba unggah ulang filenya.';
   }
 }
 
-// ---------------- Parsing ----------------
+function widthOf(it){ return (it.width && it.width > 0) ? it.width : it.str.length * 5; }
+
+// Deteksi baris judul kolom, lalu susun seluruh baris di bawahnya menjadi grid kolom
+// (mirip membaca tabel Excel), agar TIDAK ada baris yang terlewat, sampai ribuan baris sekalipun.
+function clusterColumns(itemsByRow){
+  const headerKeywords = ['no','nomor','kontrak','nama','pembiayaan','pinjaman','pokok','margin','basil','angsuran','saldo','tunggakan','keterangan','ket','alamat','jumlah','tanggal','bagi','hasil'];
+  let headerRowIdx = -1;
+  for(let i=0; i<Math.min(itemsByRow.length, 60); i++){
+    const row = itemsByRow[i];
+    if(!row.items.length) continue;
+    const hits = row.items.filter(it => headerKeywords.includes(it.str.toLowerCase().replace(/[.:]/g,''))).length;
+    if(hits >= 2){ headerRowIdx = i; break; }
+  }
+
+  let colBounds, colLabels;
+  if(headerRowIdx >= 0){
+    const headerItems = itemsByRow[headerRowIdx].items.slice().sort((a,b)=>a.x-b.x);
+    const merged = [];
+    headerItems.forEach(it=>{
+      const w = widthOf(it);
+      if(merged.length && (it.x - merged[merged.length-1].endX) < 15){
+        const last = merged[merged.length-1];
+        last.str += ' ' + it.str;
+        last.endX = it.x + w;
+      } else {
+        merged.push({x: it.x, endX: it.x + w, str: it.str});
+      }
+    });
+    colBounds = merged.map(m=>({center:(m.x+m.endX)/2}));
+    colLabels = merged.map(m=>m.str.trim());
+  } else {
+    // tanpa baris judul yang terdeteksi: pakai jumlah kolom yang paling sering muncul sebagai acuan
+    const counts = {};
+    itemsByRow.forEach(r=>{ if(r.items.length) counts[r.items.length] = (counts[r.items.length]||0) + 1; });
+    let bestCount = 0, bestFreq = 0;
+    Object.keys(counts).forEach(k=>{ if(counts[k] > bestFreq){ bestFreq = counts[k]; bestCount = Number(k); } });
+    const refRow = itemsByRow.find(r => r.items.length === bestCount);
+    if(refRow){
+      const sorted = refRow.items.slice().sort((a,b)=>a.x-b.x);
+      colBounds = sorted.map(it=>{ const w = widthOf(it); return {center: it.x + w/2}; });
+      colLabels = colBounds.map((_,i)=>'Kolom ' + (i+1));
+    } else {
+      colBounds = []; colLabels = [];
+    }
+  }
+
+  const dataRows = [];
+  const startRow = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
+  for(let i=startRow; i<itemsByRow.length; i++){
+    const row = itemsByRow[i];
+    if(!row.items.length || !colBounds.length) continue;
+    const cells = new Array(colBounds.length).fill('');
+    row.items.slice().sort((a,b)=>a.x-b.x).forEach(it=>{
+      const w = widthOf(it);
+      const cx = it.x + w/2;
+      let bestIdx = 0, bestDist = Infinity;
+      colBounds.forEach((c,ci)=>{ const d = Math.abs(c.center - cx); if(d < bestDist){ bestDist = d; bestIdx = ci; } });
+      cells[bestIdx] = cells[bestIdx] ? cells[bestIdx] + ' ' + it.str : it.str;
+    });
+    dataRows.push(cells.map(c=>c.trim()));
+  }
+  return {colLabels, grid: dataRows};
+}
+
+function guessColumn(colLabels, grid, patterns, fallback){
+  for(const re of patterns){
+    const found = colLabels.findIndex(l => re.test(l));
+    if(found >= 0) return found;
+  }
+  return fallback;
+}
+
+function processGrid(idx, itemsByRow){
+  const p = periods[idx];
+  const statusEl = document.getElementById('status-'+idx);
+  const {colLabels, grid} = clusterColumns(itemsByRow);
+  p.colLabels = colLabels;
+  p.grid = grid.filter(r => r.some(c => c)); // buang baris yang benar-benar kosong
+
+  if(!colLabels.length || !p.grid.length){
+    statusEl.textContent = 'Tidak ada baris/kolom yang berhasil dikenali. Coba tambahkan baris manual.';
+    document.getElementById('colSelectWrap-'+idx).style.display = 'none';
+    document.getElementById('confirmWrap-'+idx).style.display = 'block';
+    p.parsedRows = [];
+    renderPreview(idx);
+    return;
+  }
+
+  // tebakan awal kolom mana Nomor / Nama / Basil, berdasarkan judul kolom (jika ada) dan isi datanya
+  const nomorGuess = guessColumn(colLabels, p.grid, [/no\.?\s*kontrak|^kontrak|^no\.?$|^nomor$/i], 0);
+  const namaGuess = guessColumn(colLabels, p.grid, [/nama/i], Math.min(1, colLabels.length-1));
+  let basilGuess = guessColumn(colLabels, p.grid, [/basil|bagi\s*hasil/i], -1);
+  if(basilGuess < 0){
+    // kalau tidak ada judul "Basil", pakai kolom angka terakhir yang isinya mayoritas berupa angka
+    for(let c = colLabels.length-1; c>=0; c--){
+      const sample = p.grid.slice(0, 20).map(r=>r[c]).filter(Boolean);
+      const numericCount = sample.filter(v=>!isNaN(parseRupiah(v))).length;
+      if(sample.length && numericCount / sample.length > 0.6){ basilGuess = c; break; }
+    }
+    if(basilGuess < 0) basilGuess = colLabels.length - 1;
+  }
+
+  const optHtml = colLabels.map((l,i)=>`<option value="${i}">${l || ('Kolom '+(i+1))}</option>`).join('');
+  const selNomor = document.getElementById('colNomor-'+idx);
+  const selNama = document.getElementById('colNama-'+idx);
+  const selBasil = document.getElementById('colBasil-'+idx);
+  selNomor.innerHTML = optHtml; selNomor.value = nomorGuess;
+  selNama.innerHTML = optHtml; selNama.value = namaGuess;
+  selBasil.innerHTML = optHtml; selBasil.value = basilGuess;
+  document.getElementById('colSelectWrap-'+idx).style.display = 'block';
+  document.getElementById('confirmWrap-'+idx).style.display = 'block';
+
+  statusEl.textContent = p.grid.length + ' baris & ' + colLabels.length + ' kolom terdeteksi. Periksa pemetaan kolom di bawah lalu cek pratinjau.';
+  buildParsedRowsFromGrid(idx);
+  renderPreview(idx);
+}
+
+function buildParsedRowsFromGrid(idx){
+  const p = periods[idx];
+  const nomorIdx = parseInt(document.getElementById('colNomor-'+idx).value, 10);
+  const namaIdx = parseInt(document.getElementById('colNama-'+idx).value, 10);
+  const basilIdx = parseInt(document.getElementById('colBasil-'+idx).value, 10);
+  p.parsedRows = p.grid.map(r=>{
+    const nomor = (r[nomorIdx] || '').trim();
+    const nama = (r[namaIdx] || '').trim();
+    const v = parseRupiah(r[basilIdx] || '');
+    return {nomor, nama, numbers: [isNaN(v) ? 0 : v]};
+  }).filter(row => row.nomor || row.nama);
+  p.basilColIndex = 0;
+}
+
+// ---------------- Format angka ----------------
 function parseRupiah(s){
   s = (s||'').trim();
   if(!s || !/\d/.test(s)) return NaN;
@@ -235,99 +360,8 @@ function parseRupiah(s){
   return isNaN(n) ? NaN : n;
 }
 
-const HEADER_WORDS = /^(no\.?|nomor|nama|kontrak|basil|pokok|margin|angsuran|saldo|tunggakan|keterangan|ket\.?|jumlah|total|halaman|page|tanggal|periode|bulan|alamat|status)$/i;
-
-function parseRows(text){
-  const lines = text.split('\n');
-  // terima format nomor kontrak yang lebih fleksibel: 01-00001, 001-0001, 01/00001, 0100001-A, angka panjang, dst.
-  const kontrakRe = /\b(\d{1,4}[\/.\-]\d{2,7}(?:[\/.\-]\w+)?|\d{5,12})\b/;
-  const numRe = /-?\d{1,3}(?:\.\d{3})*(?:,\d+)?|-?\d+(?:,\d+)?/g;
-  const rows = [];
-  lines.forEach(line=>{
-    const trimmed = line.trim();
-    if(!trimmed) return;
-
-    // 1) coba pisah berdasarkan kolom (tab = jarak antar kolom lebar hasil ekstraksi PDF)
-    const tabCols = trimmed.split(/\t+/).map(s=>s.trim()).filter(Boolean);
-    if(tabCols.length >= 3){
-      const nomor = tabCols[0], nama = tabCols[1];
-      if(/\d/.test(nomor) && /[a-zA-Z]/.test(nama) && !HEADER_WORDS.test(nomor) && !HEADER_WORDS.test(nama)){
-        const numbers = tabCols.slice(2).map(parseRupiah).filter(n=>!isNaN(n));
-        if(numbers.length){
-          rows.push({nomor, nama, numbers});
-          return;
-        }
-      }
-    }
-
-    // 2) cari pola nomor kontrak di mana pun dalam baris
-    const km = trimmed.match(kontrakRe);
-    if(km){
-      const nomor = km[1];
-      const after = trimmed.slice(km.index + nomor.length);
-      const nums = after.match(numRe) || [];
-      let nameEnd = after.length;
-      if(nums.length){
-        const firstIdx = after.indexOf(nums[0]);
-        if(firstIdx >= 0) nameEnd = firstIdx;
-      }
-      const nama = after.replace(/\t/g,' ').slice(0, nameEnd).trim().replace(/\s+/g,' ');
-      if(nama && /[a-zA-Z]/.test(nama) && !HEADER_WORDS.test(nama)){
-        const numbers = nums.map(parseRupiah).filter(n=>!isNaN(n));
-        if(numbers.length) rows.push({nomor, nama, numbers});
-        return;
-      }
-    }
-
-    // 3) fallback terakhir: pisah berdasarkan 2+ spasi biasa
-    const parts = trimmed.split(/;|\s{2,}/).map(s=>s.trim()).filter(Boolean);
-    if(parts.length >= 3 && /\d/.test(parts[0]) && /[a-zA-Z]/.test(parts[1]) && !HEADER_WORDS.test(parts[0]) && !HEADER_WORDS.test(parts[1])){
-      const numbers = parts.slice(2).map(parseRupiah).filter(n=>!isNaN(n));
-      if(numbers.length){
-        rows.push({nomor: parts[0], nama: parts[1], numbers});
-      }
-    }
-  });
-  return rows;
-}
-
-function doParse(idx){
-  const text = document.getElementById('text-'+idx).value;
-  const statusEl = document.getElementById('status-'+idx);
-  if(!text.trim()){
-    statusEl.textContent = 'Kotak teks masih kosong.';
-    return;
-  }
-  const rows = parseRows(text);
-  if(!rows.length){
-    statusEl.textContent = 'Tidak ada baris yang berhasil dikenali. Periksa format teks, atau tambahkan baris manual.';
-    periods[idx].parsedRows = [];
-  } else {
-    statusEl.textContent = rows.length + ' baris berhasil dikenali. Pilih kolom Basil lalu periksa pratinjau.';
-  }
-  periods[idx].parsedRows = rows;
-  periods[idx].maxNumCols = rows.reduce((m,r)=>Math.max(m, r.numbers.length), 0);
-
-  const colWrap = document.getElementById('colSelectWrap-'+idx);
-  const colSelect = document.getElementById('colSelect-'+idx);
-  if(periods[idx].maxNumCols > 0){
-    colSelect.innerHTML = Array.from({length: periods[idx].maxNumCols}, (_,i)=>
-      `<option value="${i}">Angka ke-${i+1}</option>`
-    ).join('');
-    colSelect.value = periods[idx].maxNumCols - 1; // default: kolom terakhir
-    periods[idx].basilColIndex = periods[idx].maxNumCols - 1;
-    colWrap.style.display = 'block';
-  } else {
-    colWrap.style.display = 'none';
-  }
-  document.getElementById('confirmWrap-'+idx).style.display = rows.length ? 'block' : 'block';
-  renderPreview(idx);
-}
-
 function renderPreview(idx){
   const p = periods[idx];
-  const colSelect = document.getElementById('colSelect-'+idx);
-  if(colSelect && colSelect.value !== '') p.basilColIndex = parseInt(colSelect.value, 10);
   const container = document.getElementById('preview-'+idx);
   if(!p.parsedRows.length){
     container.style.display = 'none';
@@ -336,14 +370,14 @@ function renderPreview(idx){
   container.style.display = 'block';
   container.innerHTML = `
     <table>
-      <thead><tr><th>Nomor</th><th>Nama</th><th class="num">Basil (terpilih)</th><th></th></tr></thead>
+      <thead><tr><th>Nomor Kontrak</th><th>Nama</th><th class="num">Basil (terpilih)</th><th></th></tr></thead>
       <tbody>
         ${p.parsedRows.map((r, ri) => `
           <tr>
             <td contenteditable="true" onblur="editCell(${idx},${ri},'nomor',this.textContent)">${r.nomor}</td>
             <td contenteditable="true" onblur="editCell(${idx},${ri},'nama',this.textContent)">${r.nama}</td>
             <td class="num" contenteditable="true" onblur="editCell(${idx},${ri},'basil',this.textContent)">${
-              r.numbers[p.basilColIndex] !== undefined ? fmtNum(r.numbers[p.basilColIndex]) : '-'
+              r.numbers[0] !== undefined ? fmtNum(r.numbers[0]) : '-'
             }</td>
             <td><button class="btn small gray" onclick="deleteRow(${idx},${ri})">✕</button></td>
           </tr>
@@ -362,7 +396,7 @@ function editCell(idx, ri, field, value){
   else if(field === 'basil'){
     if(!row.numbers) row.numbers = [];
     const v = parseRupiah(value);
-    row.numbers[p.basilColIndex] = isNaN(v) ? 0 : v;
+    row.numbers[0] = isNaN(v) ? 0 : v;
   }
 }
 
@@ -373,26 +407,18 @@ function deleteRow(idx, ri){
 
 function addManualRow(idx){
   const p = periods[idx];
-  const cols = Math.max(p.maxNumCols, 1);
-  const numbers = new Array(cols).fill(0);
-  p.parsedRows.push({nomor:'00-00000', nama:'NAMA BARU', numbers});
-  if(p.basilColIndex === null) p.basilColIndex = cols - 1;
-  document.getElementById('colSelectWrap-'+idx).style.display = 'block';
-  const colSelect = document.getElementById('colSelect-'+idx);
-  if(!colSelect.options.length){
-    colSelect.innerHTML = Array.from({length: cols}, (_,i)=>`<option value="${i}">Angka ke-${i+1}</option>`).join('');
-    colSelect.value = p.basilColIndex;
-  }
+  p.parsedRows.push({nomor:'00-00000', nama:'NAMA BARU', numbers:[0]});
+  document.getElementById('confirmWrap-'+idx).style.display = 'block';
   renderPreview(idx);
 }
 
 function resetPeriod(idx){
-  periods[idx].rawText = '';
+  periods[idx].grid = [];
+  periods[idx].colLabels = [];
   periods[idx].parsedRows = [];
   periods[idx].records = null;
-  periods[idx].basilColIndex = null;
+  periods[idx].basilColIndex = 0;
   periods[idx].label = 'Data ' + (idx+1);
-  document.getElementById('text-'+idx).value = '';
   document.getElementById('file-'+idx).value = '';
   document.getElementById('filename-'+idx).textContent = '';
   document.getElementById('status-'+idx).textContent = 'Belum ada data.';
@@ -412,7 +438,7 @@ function confirmPeriod(idx){
   p.records = p.parsedRows.map(r => ({
     nomor: r.nomor,
     nama: r.nama,
-    basil: r.numbers[p.basilColIndex] !== undefined ? r.numbers[p.basilColIndex] : 0
+    basil: r.numbers[0] !== undefined ? r.numbers[0] : 0
   }));
   const statusEl = document.getElementById('status-'+idx);
   statusEl.textContent = '✔ Dikonfirmasi: ' + p.records.length + ' data siap dibandingkan.';
