@@ -337,13 +337,14 @@
   .unpaid-col{
     min-width:0;
   }
-  .unpaid-col table{font-size:12.5px;table-layout:fixed;width:100%;}
-  .unpaid-col thead th{padding:9px 7px;font-size:9.5px;}
-  .unpaid-col tbody td{padding:8px 7px;white-space:normal;word-break:normal;overflow-wrap:break-word;vertical-align:top;}
-  .unpaid-col td.nomor{font-size:10.5px;}
+  .unpaid-col table{font-size:12px;table-layout:fixed;width:100%;}
+  .unpaid-col thead th{padding:9px 6px;font-size:9px;overflow:hidden;text-overflow:ellipsis;}
+  .unpaid-col tbody td{padding:8px 6px;white-space:normal;word-break:normal;overflow-wrap:break-word;vertical-align:top;}
+  .unpaid-col td.nomor{font-size:10px;white-space:nowrap;}
   .unpaid-col td.name{line-height:1.4;}
-  .unpaid-col td.num{font-size:11.5px;white-space:nowrap;}
-  .unpaid-col .table-scroll{max-height:460px;}
+  .unpaid-col td.num{font-size:11px;white-space:nowrap;}
+  .unpaid-col tbody td:first-child{white-space:nowrap;text-align:center;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:10.5px;}
+  .unpaid-col .table-scroll{max-height:460px;overflow-x:hidden;}
   .unpaid-col{
     background:var(--card);
     border:1px solid var(--line);
@@ -359,14 +360,14 @@
     font-weight:400;
     margin-left:8px;
   }
-  /* kolom fixed agar Nomor/Basil tidak menyempitkan Nama secara acak */
-  .unpaid-col table col.c-no{width:20px;}
-  .unpaid-col table col.c-nomor{width:54px;}
-  .unpaid-col table col.c-name{width:auto;}
-  .unpaid-col table col.c-basil{width:62px;}
-  .unpaid-col table.tbl3 col.c-no{width:22px;}
-  .unpaid-col table.tbl3 col.c-name{width:auto;}
-  .unpaid-col table.tbl3 col.c-basil{width:70px;}
+  /* kolom dalam persen agar total selalu 100% lebar kontainer -> tidak ada scroll horizontal */
+  .unpaid-col table col.c-no{width:9%;}
+  .unpaid-col table col.c-nomor{width:22%;}
+  .unpaid-col table col.c-name{width:46%;}
+  .unpaid-col table col.c-basil{width:23%;}
+  .unpaid-col table.tbl3 col.c-no{width:10%;}
+  .unpaid-col table.tbl3 col.c-name{width:62%;}
+  .unpaid-col table.tbl3 col.c-basil{width:28%;}
   td.name .name-text{display:inline;}
 
   .table-scroll{
@@ -501,6 +502,62 @@
     color:rgba(255,255,255,.94);
   }
   .analysis-conclusion b{color:#fff;}
+
+  .selisih-detail{
+    margin-top:20px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:var(--radius-sm);
+    padding:16px 18px;
+  }
+  .selisih-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:10px;flex-wrap:wrap;gap:8px;
+  }
+  .selisih-head h4{
+    font-family:'Poppins',sans-serif;font-weight:600;font-size:13.5px;margin:0;color:#fff;
+  }
+  .selisih-head .selisih-desc{
+    font-size:11.5px;color:rgba(255,255,255,.72);margin-top:3px;
+  }
+  .selisih-count{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.75);
+  }
+  .selisih-scroll{
+    max-height:360px;overflow:auto;border-radius:10px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.12);
+  }
+  .selisih-scroll table{width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse;}
+  .selisih-scroll col.s-no{width:8%;}
+  .selisih-scroll col.s-name{width:44%;}
+  .selisih-scroll col.s-basil{width:16%;}
+  .selisih-scroll thead th{
+    position:sticky;top:0;background:#013A6E;color:#fff;
+    font-family:'Poppins',sans-serif;font-weight:500;font-size:9.5px;
+    letter-spacing:.04em;text-transform:uppercase;
+    padding:9px 10px;white-space:nowrap;text-align:left;
+  }
+  .selisih-scroll thead th.num{text-align:right;}
+  .selisih-scroll tbody td{
+    padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.12);
+    color:#fff;white-space:normal;overflow-wrap:break-word;vertical-align:top;
+  }
+  .selisih-scroll tbody td:first-child{
+    white-space:nowrap;text-align:center;color:rgba(255,255,255,.6);
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+  }
+  .selisih-scroll tbody td.num{
+    font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;
+  }
+  .selisih-scroll tbody tr:nth-child(even){background:rgba(255,255,255,.04);}
+  .selisih-scroll tfoot td{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;padding:10px;
+    border-top:2px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.07);color:#fff;
+  }
+  .selisih-scroll td.diff-pos{color:#BFF3D3;}
+  .selisih-scroll td.diff-neg{color:#FFD8B8;}
 
   footer.note{
     font-size:12px;
@@ -713,6 +770,42 @@
             <div class="a-note" id="anCountDiff">Selisih jumlah nama: 0</div>
           </div>
         </div>
+
+        <div class="selisih-detail">
+          <div class="selisih-head">
+            <div>
+              <h4>Rincian Nama &amp; Basil di Balik Selisih</h4>
+              <div class="selisih-desc">Diurutkan dari selisih Basil D2 &minus; D1 terbesar</div>
+            </div>
+            <span class="selisih-count" id="selisihCountLabel"></span>
+          </div>
+          <div class="selisih-scroll">
+            <table id="selisihTable">
+              <colgroup>
+                <col class="s-no"><col class="s-name"><col class="s-basil"><col class="s-basil"><col class="s-basil">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Nama</th>
+                  <th class="num">Basil D1</th>
+                  <th class="num">Basil D2</th>
+                  <th class="num">Selisih</th>
+                </tr>
+              </thead>
+              <tbody id="selisihBody"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2">Total</td>
+                  <td class="num" id="selisihTotal1Cell">0</td>
+                  <td class="num" id="selisihTotal2Cell">0</td>
+                  <td class="num" id="selisihTotalDiffCell">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
         <div class="analysis-conclusion" id="anConclusion"></div>
       </div>
     </section>
@@ -1005,6 +1098,44 @@ function groupByNamaOnly(records, basilKey){
 const numFmt = new Intl.NumberFormat('id-ID', {maximumFractionDigits:0});
 const fmt = v => numFmt.format(Math.round(v));
 
+// Rincian nama & Basil di balik angka "Selisih Basil (Data 2 - Data 1)" dan
+// "Selisih jumlah nama" pada kartu Kesimpulan Analisa. Digabung berdasarkan
+// Nama saja (lintas Nomor) dari seluruh baris Belum Bayar Data 1 & Data 2.
+function renderSelisihDetail(byName1, byName2, unpaidTotal1, unpaidTotal2, basilDiff){
+  const namaSet = new Set([...byName1.keys(), ...byName2.keys()]);
+  const rows = [];
+  namaSet.forEach(nama=>{
+    const b1 = byName1.has(nama) ? byName1.get(nama).basil1 : 0;
+    const b2 = byName2.has(nama) ? byName2.get(nama).basil2 : 0;
+    rows.push({nama, basil1:b1, basil2:b2, diff:b2-b1});
+  });
+  rows.sort((a,b)=> Math.abs(b.diff) - Math.abs(a.diff));
+
+  const body = document.getElementById('selisihBody');
+  body.innerHTML = '';
+  if(rows.length === 0){
+    body.innerHTML = '<tr class="empty-row"><td colspan="5">Tidak ada data</td></tr>';
+  } else {
+    rows.forEach((r,i)=>{
+      const diffClass = r.diff > 0 ? 'diff-pos' : (r.diff < 0 ? 'diff-neg' : '');
+      const diffText = (r.diff>=0?'+':'') + fmt(r.diff);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td>${r.nama}</td>
+        <td class="num">${fmt(r.basil1)}</td>
+        <td class="num">${fmt(r.basil2)}</td>
+        <td class="num ${diffClass}">${diffText}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+  document.getElementById('selisihCountLabel').textContent = rows.length + ' nama';
+  document.getElementById('selisihTotal1Cell').textContent = fmt(unpaidTotal1);
+  document.getElementById('selisihTotal2Cell').textContent = fmt(unpaidTotal2);
+  document.getElementById('selisihTotalDiffCell').textContent = (basilDiff>=0?'+':'') + fmt(basilDiff);
+}
+
 function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2, records1, records2){
   const paidBody = document.getElementById('paidBody');
   const unpaidBody1 = document.getElementById('unpaidBody1');
@@ -1147,6 +1278,8 @@ function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2, records
     `sedangkan Data 2 tercatat <b>${unpaid2.length} nama</b> dengan total Basil <b>${fmt(unpaidTotal2)}</b>. ` +
     `Total Basil Data 2 ${arah} dibanding Data 1 dengan selisih <b>${fmt(Math.abs(basilDiff))}</b>, ` +
     `dan jumlah nama Data 2 ${arahNama} dibanding Data 1 dengan selisih <b>${Math.abs(countDiff)} nama</b>.`;
+
+  renderSelisihDetail(byName1, byName2, unpaidTotal1, unpaidTotal2, basilDiff);
 
   const skippedNote = document.getElementById('skippedNote');
   const totalSkipped = (skipped1||0) + (skipped2||0);
