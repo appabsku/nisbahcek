@@ -3,654 +3,754 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rekap Pencocokan Pembayaran — Multi Periode</title>
+<title>Rekonsiliasi Mutasi Pinjaman</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
-    --navy:#1F4E78; --navy-dark:#153450; --green:#1e7e34; --green-bg:#e6f7ec;
-    --red:#b02a2a; --red-bg:#fdecec; --gray:#6b7280; --border:#e2e6ea; --bg:#f4f6f9;
-    --amber:#92400e; --amber-bg:#fef3c7;
+    --paper:#F5F6F1;
+    --paper-line:#E1DFD3;
+    --ink:#182420;
+    --ink-soft:#54615A;
+    --gold:#A9803E;
+    --gold-soft:#F1E6D2;
+    --rust:#A24632;
+    --rust-soft:#F4E1DA;
+    --line:#D8D6C8;
+    --card:#FFFFFF;
+    --radius:10px;
   }
   *{box-sizing:border-box;}
-  body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;background:var(--bg);margin:0;color:#1f2937;}
-  header{background:linear-gradient(135deg,var(--navy),var(--navy-dark));color:#fff;padding:28px 32px;}
-  header h1{margin:0 0 6px 0;font-size:22px;}
-  header p{margin:0;opacity:.85;font-size:13px;}
-  .wrap{max-width:1240px;margin:0 auto;padding:24px 20px 60px;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(180deg, transparent 0 38px, var(--paper-line) 38px 39px),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:48px 24px 80px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
 
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:28px;}
-  .card{background:#fff;border-radius:10px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.04);}
-  .card .label{font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;}
-  .card .value{font-size:20px;font-weight:700;color:var(--navy-dark);}
-  .card.green{border-left:4px solid var(--green);}
-  .card.red{border-left:4px solid var(--red);}
-  .card .sub{font-size:12px;color:var(--gray);margin-top:4px;}
+  header.top{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+  }
+  .brand-mark{
+    width:44px;height:44px;border-radius:50%;
+    border:2px solid var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:600;font-size:18px;
+    flex:none;
+  }
+  .title-block{display:flex;align-items:center;gap:14px;}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(26px,3.4vw,36px);
+    margin:0;
+    letter-spacing:-0.01em;
+    line-height:1.05;
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:4px;
+    letter-spacing:.02em;
+  }
+  .ledger-no{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:right;
+  }
 
-  section{background:#fff;border-radius:10px;border:1px solid var(--border);margin-bottom:26px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-  section .sec-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
-  section .sec-head h2{margin:0;font-size:16px;}
-  section.sudah .sec-head{background:var(--green-bg);}
-  section.belum .sec-head{background:var(--red-bg);}
-  section.recap .sec-head{background:#eef2f7;}
-  section.input .sec-head{background:#eef2f7;}
-  .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;margin-left:8px;}
-  .badge.green{background:var(--green);color:#fff;}
-  .badge.red{background:var(--red);color:#fff;}
+  .upload-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-bottom:22px;
+  }
+  @media (max-width:700px){ .upload-grid{grid-template-columns:1fr;} }
 
-  .search-box{padding:10px 14px;font-size:13px;border:1px solid var(--border);border-radius:8px;width:240px;outline:none;}
-  .search-box:focus{border-color:var(--navy);}
+  .drop{
+    background:var(--card);
+    border:1.5px dashed var(--line);
+    border-radius:var(--radius);
+    padding:26px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+    position:relative;
+  }
+  .drop:hover, .drop.drag{
+    border-color:var(--gold);
+    background:var(--gold-soft);
+  }
+  .drop.filled{
+    border-style:solid;
+    border-color:var(--ink);
+    background:var(--card);
+  }
+  .drop .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+    display:block;
+  }
+  .drop .fname{
+    font-family:'Fraunces',serif;
+    font-size:17px;
+    font-weight:500;
+    margin-top:4px;
+    word-break:break-word;
+  }
+  .drop .hint{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+  .drop input{display:none;}
+  .drop .icon{font-size:22px;opacity:.6;}
 
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  thead th{position:sticky;top:0;background:#fafbfc;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);color:#374151;cursor:pointer;white-space:nowrap;user-select:none;}
-  thead th:hover{color:var(--navy);}
-  thead th.num, td.num{text-align:right;}
-  tbody td{padding:9px 14px;border-bottom:1px solid #f0f2f5;}
-  tbody tr:hover{background:#f8fafc;}
-  .table-scroll{max-height:520px;overflow:auto;}
-  .pos{color:var(--green);font-weight:600;}
-  .neg{color:var(--red);font-weight:600;}
-  .zero{color:var(--gray);}
-  .status-tag{font-size:11px;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#374151;white-space:nowrap;}
-  .status-tag.p0{background:#fde8e8;color:#9b1c1c;}
-  .status-tag.p1{background:#fef3c7;color:#92400e;}
-  .status-tag.p2{background:#e0e7ff;color:#3730a3;}
-  .count-tag{font-size:12px;color:var(--gray);}
+  .actions{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:8px;
+  }
+  button#run{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:14px 26px;
+    border-radius:8px;
+    cursor:pointer;
+    letter-spacing:.01em;
+    transition:transform .12s ease, background .15s ease;
+  }
+  button#run:disabled{
+    background:#B9BDB6;
+    cursor:not-allowed;
+  }
+  button#run:not(:disabled):hover{background:#2b3b34;}
+  button#run:not(:disabled):active{transform:scale(.98);}
 
-  table.recap-table{font-size:14px;}
-  table.recap-table td, table.recap-table th{padding:10px 16px;}
-  table.recap-table th{background:#fafbfc;}
-  table.recap-table td.num{font-variant-numeric:tabular-nums;}
-  .total-row td{font-weight:700;background:#f8fafc;border-top:2px solid var(--border);}
-  footer{text-align:center;color:var(--gray);font-size:12px;padding:20px;}
+  .status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-height:20px;
+  }
+  .spinner{
+    width:13px;height:13px;border-radius:50%;
+    border:2px solid var(--line);
+    border-top-color:var(--ink);
+    animation:spin .7s linear infinite;
+    display:none;
+  }
+  .spinner.on{display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
-  /* ---- input area ---- */
-  .period-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;padding:20px;}
-  .period-box{border:1px solid var(--border);border-radius:10px;padding:14px;background:#fafbfc;}
-  .period-box h3{margin:0 0 10px 0;font-size:14px;color:var(--navy-dark);}
-  .period-box input[type=text]{width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;margin-bottom:10px;}
-  .period-box input[type=file]{width:100%;font-size:12px;margin-bottom:8px;}
-  .period-box textarea{width:100%;height:100px;font-size:11px;font-family:Consolas,monospace;padding:8px;border:1px solid var(--border);border-radius:6px;resize:vertical;margin-bottom:8px;}
-  .btn{display:inline-block;padding:8px 14px;font-size:12px;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:var(--navy);color:#fff;margin-right:6px;margin-bottom:6px;}
-  .btn:hover{background:var(--navy-dark);}
-  .btn.small{padding:4px 9px;font-size:11px;}
-  .btn.gray{background:#6b7280;}
-  .btn.gray:hover{background:#4b5563;}
-  .btn.big{padding:12px 22px;font-size:14px;}
-  .btn:disabled{background:#c3cad3;cursor:not-allowed;}
-  .status-line{font-size:12px;color:var(--gray);margin:6px 0;}
-  .status-line.ok{color:var(--green);font-weight:600;}
-  .col-select{font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;}
-  .preview-scroll{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;background:#fff;}
-  .preview-scroll table{font-size:11px;}
-  .preview-scroll td, .preview-scroll th{padding:5px 8px;}
-  .preview-scroll td[contenteditable=true]{background:#fffef0;}
-  .tabs{display:flex;gap:4px;margin-bottom:10px;}
-  .tab-btn{flex:1;padding:6px 8px;font-size:11px;border:1px solid var(--border);background:#fff;cursor:pointer;border-radius:6px;}
-  .tab-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
-  .hint{font-size:11px;color:var(--gray);margin-bottom:8px;line-height:1.5;}
-  .compare-bar{padding:18px 20px;text-align:center;background:#eef2f7;}
-  .empty-msg{padding:40px 20px;text-align:center;color:var(--gray);font-size:13px;}
+  .error-box{
+    background:var(--rust-soft);
+    border:1px solid var(--rust);
+    color:var(--rust);
+    padding:12px 16px;
+    border-radius:8px;
+    font-size:13.5px;
+    margin-top:14px;
+    display:none;
+  }
+
+  #results{display:none;margin-top:44px;}
+
+  .summary-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-bottom:34px;
+  }
+  @media (max-width:700px){ .summary-row{grid-template-columns:1fr;} }
+  .summary-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px 22px;
+    border-left:4px solid var(--gold);
+  }
+  .summary-card.rust{border-left-color:var(--rust);}
+  .summary-card .label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .summary-card .big{
+    font-family:'Fraunces',serif;
+    font-size:30px;
+    font-weight:600;
+    margin-top:6px;
+  }
+  .summary-card .sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+
+  section.table-block{margin-bottom:46px;}
+  .table-head{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:14px;
+    border-bottom:1px solid var(--ink);
+    padding-bottom:10px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:3px 9px;
+    border-radius:999px;
+    letter-spacing:.06em;
+    font-weight:600;
+  }
+  .tag.paid{background:var(--gold-soft);color:var(--gold);}
+  .tag.unpaid{background:var(--rust-soft);color:var(--rust);}
+  h2.tbl-title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:0;
+  }
+  .tbl-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-left:auto;
+  }
+
+  .table-scroll{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:auto;
+    max-height:520px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  thead th{
+    position:sticky;top:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:500;
+    font-size:11px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    text-align:left;
+    padding:11px 14px;
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:9px 14px;
+    border-bottom:1px solid var(--paper-line);
+    white-space:nowrap;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FAFAF6;}
+  td.num, th.num{
+    font-family:'IBM Plex Mono',monospace;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  td.name{font-weight:500;}
+  td.nomor{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12.5px;}
+  td.diff-pos{color:var(--gold);}
+  td.diff-neg{color:var(--rust);}
+  .empty-row td{
+    text-align:center;
+    color:var(--ink-soft);
+    font-style:italic;
+    padding:22px;
+  }
+  tfoot td{
+    padding:12px 14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    border-top:2px solid var(--ink);
+    background:#FAFAF6;
+  }
+
+  footer.note{
+    font-size:12px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    margin-top:20px;
+    line-height:1.6;
+  }
 </style>
 </head>
 <body>
-
-<header>
-  <h1>Rekap Pencocokan Pembayaran — Multi Periode</h1>
-  <p>KSPPS "Artha Bahana Syariah" Randublatung &middot; Pencocokan berdasarkan Nomor Kontrak &amp; Nama &middot; Bandingkan hingga 3 periode sekaligus</p>
-</header>
-
 <div class="wrap">
 
-  <section class="input">
-    <div class="sec-head"><h2>📥 Input Data (Data 1 &amp; Data 2)</h2></div>
-    <div class="hint" style="padding:14px 20px 0;">
-      Tugas utama: bandingkan <b>2 data</b> (mis. Juni vs Juli, atau bulan apa saja, opsional sampai 3 data). Untuk tiap data, klik <b>Unggah PDF</b> — seluruh baris otomatis dibaca (tanpa batas jumlah baris), dan nama data mengikuti nama file PDF yang diunggah.
-      Setelah diproses, tentukan kolom mana yang <b>Nomor Kontrak</b>, <b>Nama</b>, dan <b>Basil</b> (kolom lain seperti Pembiayaan/Pokok otomatis diabaikan dan tidak ditampilkan), periksa hasil pada tabel pratinjau (bisa diedit langsung), lalu klik <b>Konfirmasi</b>.
+  <header class="top">
+    <div class="title-block">
+      <div class="brand-mark">AB</div>
+      <div>
+        <h1>Rekonsiliasi Mutasi Pinjaman</h1>
+        <div class="subtitle">Unggah dua laporan &mdash; sistem mencocokkan Nomor, Nama &amp; Basil secara otomatis</div>
+      </div>
     </div>
-    <div class="period-grid" id="periodGrid"></div>
-    <div style="padding:0 20px 16px;">
-      <button class="btn gray small" id="btnAddThird" onclick="showThirdPeriod()">+ Tambah Data 3 (opsional, untuk bandingkan 3 data)</button>
-    </div>
-    <div class="compare-bar">
-      <button class="btn big" id="btnCompare" disabled>🔄 Bandingkan Data</button>
-      <div class="status-line" id="compareStatus">Minimal 2 data harus dikonfirmasi terlebih dahulu.</div>
-    </div>
-  </section>
+    <div class="ledger-no" id="todayNo"></div>
+  </header>
 
-  <div id="resultsArea">
-    <div class="empty-msg">Belum ada hasil perbandingan. Isi minimal Data 1 dan Data 2 di atas lalu klik "Bandingkan Data".</div>
+  <div class="upload-grid">
+    <label class="drop" id="drop1">
+      <input type="file" id="file1" accept="application/pdf">
+      <span class="eyebrow">Data 1</span>
+      <div class="icon">&#128196;</div>
+      <div class="fname" id="fname1">Klik atau seret file PDF ke sini</div>
+      <div class="hint">Laporan mutasi periode pertama</div>
+    </label>
+    <label class="drop" id="drop2">
+      <input type="file" id="file2" accept="application/pdf">
+      <span class="eyebrow">Data 2</span>
+      <div class="icon">&#128196;</div>
+      <div class="fname" id="fname2">Klik atau seret file PDF ke sini</div>
+      <div class="hint">Laporan mutasi periode kedua</div>
+    </label>
+  </div>
+
+  <div class="actions">
+    <button id="run" disabled>Proses &amp; Bandingkan</button>
+    <div class="status"><span class="spinner" id="spin"></span><span id="statusText"></span></div>
+  </div>
+  <div class="error-box" id="errorBox"></div>
+
+  <div id="results">
+
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="label">Sudah Bayar</div>
+        <div class="big" id="sumPaidCount">0</div>
+        <div class="sub" id="sumPaidTotal">0</div>
+      </div>
+      <div class="summary-card rust">
+        <div class="label">Belum Bayar</div>
+        <div class="big" id="sumUnpaidCount">0</div>
+        <div class="sub" id="sumUnpaidTotal">0</div>
+      </div>
+    </div>
+
+    <section class="table-block">
+      <div class="table-head">
+        <h2 class="tbl-title">Sudah Bayar</h2>
+        <span class="tag paid">match</span>
+        <span class="tbl-count" id="paidCountLabel"></span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Nomor</th>
+              <th>Nama</th>
+              <th class="num">Basil Data 1</th>
+              <th class="num">Basil Data 2</th>
+              <th class="num">Selisih (1-2)</th>
+            </tr>
+          </thead>
+          <tbody id="paidBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="table-block">
+      <div class="table-head">
+        <h2 class="tbl-title">Belum Bayar</h2>
+        <span class="tag unpaid">tidak match</span>
+        <span class="tbl-count" id="unpaidCountLabel"></span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Nomor</th>
+              <th>Nama</th>
+              <th class="num">Basil Data 1</th>
+            </tr>
+          </thead>
+          <tbody id="unpaidBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Total Akumulasi Basil Data 1</td>
+              <td class="num" id="unpaidTotalCell">0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <footer class="note">
+      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor, Nama, dan Basil yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Baris dengan kombinasi identik pada kedua data dikategorikan "Sudah Bayar"; sisanya dikategorikan "Belum Bayar". Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
+      <div id="skippedNote" style="margin-top:8px;"></div>
+    </footer>
+
   </div>
 
 </div>
 
-<footer>Alat pencocokan pembayaran — data dapat diganti setiap bulan sesuai PDF yang diunggah.</footer>
-
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const NUM_PERIODS = 3;
-const periods = Array.from({length: NUM_PERIODS}, (_, i) => ({
-  idx: i,
-  label: 'Periode ' + (i+1),
-  grid: [],          // baris x kolom mentah hasil ekstraksi PDF
-  colLabels: [],     // nama kolom terdeteksi (dari header PDF) atau "Kolom N"
-  parsedRows: [],    // [{nomor, nama, numbers:[basil]}] setelah kolom dipilih
-  basilColIndex: 0,
-  records: null      // finalized: [{nomor, nama, basil}]
-}));
+document.getElementById('todayNo').textContent = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'});
 
-// ---------------- Build input UI ----------------
-const grid = document.getElementById('periodGrid');
-grid.innerHTML = periods.map(p => `
-  <div class="period-box" id="box-${p.idx}" style="${p.idx===2 ? 'display:none;' : ''}">
-    <h3>Data ${p.idx+1}</h3>
-    <div id="pdfArea-${p.idx}">
-      <label class="btn small" for="file-${p.idx}" style="display:inline-block;">📁 Unggah PDF</label>
-      <input type="file" id="file-${p.idx}" accept="application/pdf" style="display:none;" onchange="handlePdfUpload(${p.idx}, this.files[0])">
-      <div class="status-line" id="filename-${p.idx}" style="margin:2px 0 6px;"></div>
-    </div>
-    <div>
-      <button class="btn small gray" onclick="resetPeriod(${p.idx})">↺ Reset</button>
-      ${p.idx===2 ? `<button class="btn small gray" onclick="removeThirdPeriod()">🗑 Hapus Data 3</button>` : ''}
-    </div>
-    <div class="status-line" id="status-${p.idx}">Belum ada data.</div>
-    <div id="colSelectWrap-${p.idx}" style="display:none;">
-      <label style="font-size:12px;color:var(--gray);">Kolom mana yang <b>Nomor Kontrak</b>, <b>Nama</b>, dan <b>Basil</b>? (kolom lain diabaikan)</label>
-      <table style="width:100%;margin:6px 0 8px;"><tr>
-        <td style="padding:2px 4px 2px 0;"><select class="col-select" style="width:100%;" id="colNomor-${p.idx}" onchange="buildParsedRowsFromGrid(${p.idx}); renderPreview(${p.idx});"></select></td>
-        <td style="padding:2px 4px;"><select class="col-select" style="width:100%;" id="colNama-${p.idx}" onchange="buildParsedRowsFromGrid(${p.idx}); renderPreview(${p.idx});"></select></td>
-        <td style="padding:2px 0 2px 4px;"><select class="col-select" style="width:100%;" id="colBasil-${p.idx}" onchange="buildParsedRowsFromGrid(${p.idx}); renderPreview(${p.idx});"></select></td>
-      </tr></table>
-    </div>
-    <div class="preview-scroll" id="preview-${p.idx}" style="display:none;"></div>
-    <div id="confirmWrap-${p.idx}" style="display:none;">
-      <button class="btn small" onclick="addManualRow(${p.idx})">+ Tambah Baris Manual</button>
-      <button class="btn small" onclick="confirmPeriod(${p.idx})">✅ Konfirmasi Data ${p.idx+1}</button>
-    </div>
-  </div>
-`).join('');
+const state = { f1:null, f2:null };
 
-function showThirdPeriod(){
-  document.getElementById('box-2').style.display = 'block';
-  document.getElementById('btnAddThird').style.display = 'none';
-}
-
-function removeThirdPeriod(){
-  resetPeriod(2);
-  document.getElementById('box-2').style.display = 'none';
-  document.getElementById('btnAddThird').style.display = 'inline-block';
-  updateCompareButton();
-}
-
-// ---------------- PDF text extraction (berbasis grid kolom, bukan tebak-tebakan regex) ----------------
-async function handlePdfUpload(idx, file){
-  if(!file) return;
-  const statusEl = document.getElementById('status-'+idx);
-  const filenameEl = document.getElementById('filename-'+idx);
-  filenameEl.textContent = '📄 File: ' + file.name;
-  periods[idx].label = file.name.replace(/\.pdf$/i, '');
-  statusEl.textContent = 'Mengekstrak teks dari PDF...';
-  try{
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-    let itemsByRow = [];
-    for(let pnum=1; pnum<=pdf.numPages; pnum++){
-      const page = await pdf.getPage(pnum);
-      const content = await page.getTextContent();
-      const rowMap = {};
-      content.items.forEach(it=>{
-        if(!it.str || !it.str.trim()) return;
-        const yRaw = it.transform[5];
-        // toleransi 2px agar teks pada baris visual yang sama tidak terpecah jadi baris berbeda
-        const yKey = Math.round(yRaw / 2) * 2;
-        if(!rowMap[yKey]) rowMap[yKey] = [];
-        rowMap[yKey].push({x: it.transform[4], str: it.str, width: it.width});
-      });
-      const ys = Object.keys(rowMap).map(Number).sort((a,b)=>b-a);
-      ys.forEach(y => itemsByRow.push({y, items: rowMap[y]}));
+function wireDrop(dropId, inputId, fnameId, key){
+  const drop = document.getElementById(dropId);
+  const input = document.getElementById(inputId);
+  const fname = document.getElementById(fnameId);
+  input.addEventListener('change', ()=>{
+    if(input.files && input.files[0]){
+      state[key] = input.files[0];
+      fname.textContent = input.files[0].name;
+      drop.classList.add('filled');
     }
-    statusEl.textContent = 'Mendeteksi kolom (' + pdf.numPages + ' halaman, ' + itemsByRow.length + ' baris terdeteksi)...';
-    processGrid(idx, itemsByRow);
-  }catch(err){
-    statusEl.textContent = 'Gagal membaca PDF: ' + err.message + '. Coba unggah ulang filenya.';
-  }
+    checkReady();
+  });
+  ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop', e=>{
+    const f = e.dataTransfer.files[0];
+    if(f && f.type === 'application/pdf'){
+      input.files = e.dataTransfer.files;
+      state[key] = f;
+      fname.textContent = f.name;
+      drop.classList.add('filled');
+    }
+    checkReady();
+  });
+}
+wireDrop('drop1','file1','fname1','f1');
+wireDrop('drop2','file2','fname2','f2');
+
+function checkReady(){
+  document.getElementById('run').disabled = !(state.f1 && state.f2);
 }
 
-function widthOf(it){ return (it.width && it.width > 0) ? it.width : it.str.length * 5; }
+function setStatus(text, spinning){
+  document.getElementById('statusText').textContent = text || '';
+  document.getElementById('spin').classList.toggle('on', !!spinning);
+}
+function showError(msg){
+  const box = document.getElementById('errorBox');
+  box.textContent = msg;
+  box.style.display = msg ? 'block' : 'none';
+}
 
-// Deteksi baris judul kolom, lalu susun seluruh baris di bawahnya menjadi grid kolom
-// (mirip membaca tabel Excel), agar TIDAK ada baris yang terlewat, sampai ribuan baris sekalipun.
-function clusterColumns(itemsByRow){
-  const headerKeywords = ['no','nomor','kontrak','nama','pembiayaan','pinjaman','pokok','margin','basil','angsuran','saldo','tunggakan','keterangan','ket','alamat','jumlah','tanggal','bagi','hasil'];
-  let headerRowIdx = -1;
-  for(let i=0; i<Math.min(itemsByRow.length, 60); i++){
-    const row = itemsByRow[i];
-    if(!row.items.length) continue;
-    const hits = row.items.filter(it => headerKeywords.includes(it.str.toLowerCase().replace(/[.:]/g,''))).length;
-    if(hits >= 2){ headerRowIdx = i; break; }
+async function extractRows(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  let rows = [];
+  for(let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items
+      .map(it => ({str: it.str.trim(), x: it.transform[4], y: it.transform[5]}))
+      .filter(it => it.str.length>0);
+
+    const buckets = [];
+    items.forEach(it=>{
+      let bucket = buckets.find(b => Math.abs(b.y - it.y) <= 2.2);
+      if(!bucket){ bucket = {y: it.y, items: []}; buckets.push(bucket); }
+      bucket.items.push(it);
+    });
+    buckets.sort((a,b)=> b.y - a.y);
+    buckets.forEach(b=>{
+      b.items.sort((a,c)=> a.x - c.x);
+      rows.push({
+        items: b.items,
+        text: b.items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim()
+      });
+    });
   }
+  return rows.slice(0, 10000);
+}
 
-  let colBounds, colLabels;
-  if(headerRowIdx >= 0){
-    const headerItems = itemsByRow[headerRowIdx].items.slice().sort((a,b)=>a.x-b.x);
-    const merged = [];
-    headerItems.forEach(it=>{
-      const w = widthOf(it);
-      if(merged.length && (it.x - merged[merged.length-1].endX) < 15){
-        const last = merged[merged.length-1];
-        last.str += ' ' + it.str;
-        last.endX = it.x + w;
-      } else {
-        merged.push({x: it.x, endX: it.x + w, str: it.str});
+function detectColumns(rows){
+  const cols = { pokok: [], basil: [], kifarat: [], pembiayaan: [] };
+  rows.forEach(row=>{
+    row.items.forEach(it=>{
+      if(it.str === 'Pokok') cols.pokok.push(it.x);
+      else if(it.str === 'Basil') cols.basil.push(it.x);
+      else if(it.str === 'Kifarat') cols.kifarat.push(it.x);
+      else if(it.str === 'Pembiayaan') cols.pembiayaan.push(it.x);
+    });
+  });
+  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+  return {
+    pokok: avg(cols.pokok),
+    basil: avg(cols.basil),
+    kifarat: avg(cols.kifarat),
+    pembiayaan: avg(cols.pembiayaan)
+  };
+}
+
+const MONEY_RE = /^\d{1,3}(?:\.\d{3})*,\d{2}$/;
+const INT_RE = /^\d+$/;
+const LINE_RE = /^(\d+)\s+(\d{2}-\d{5})\s+(\d{2}-\d{2}-\d{4})\s+(.+)$/;
+
+function toNum(s){
+  return parseFloat(s.replace(/\./g,'').replace(',', '.')) || 0;
+}
+
+function nearestColumn(x, columnX){
+  let best = null, bestDist = Infinity;
+  Object.keys(columnX).forEach(key=>{
+    const cx = columnX[key];
+    if(cx === null) return;
+    const d = Math.abs(cx - x);
+    if(d < bestDist){ bestDist = d; best = key; }
+  });
+  return best;
+}
+
+function parseRecords(rows, columnX){
+  const records = [];
+  let skipped = 0;
+  const haveColumns = columnX.pokok !== null || columnX.basil !== null || columnX.kifarat !== null || columnX.pembiayaan !== null;
+
+  for(const row of rows){
+    const m = row.text.match(LINE_RE);
+    if(!m) continue;
+    const nomor = m[2];
+
+    const restItems = row.items.slice(3);
+    if(restItems.length === 0) continue;
+
+    let i = 0;
+    const nameTokens = [];
+    while(i < restItems.length && !MONEY_RE.test(restItems[i].str) && !INT_RE.test(restItems[i].str)){
+      nameTokens.push(restItems[i].str);
+      i++;
+    }
+    const nama = nameTokens.join(' ').trim();
+    if(!nama) continue;
+    const valueItems = restItems.slice(i);
+
+    let pokok=0, basil=0, kifarat=0, pembiayaan=0, ke=null;
+
+    // ambil nilai "Ke" (nomor angsuran) dari token integer, di kedua metode
+    valueItems.forEach(it=>{
+      if(INT_RE.test(it.str) && !MONEY_RE.test(it.str)){
+        ke = parseInt(it.str, 10);
       }
     });
-    colBounds = merged.map(m=>({center:(m.x+m.endX)/2}));
-    colLabels = merged.map(m=>m.str.trim());
-  } else {
-    // tanpa baris judul yang terdeteksi: pakai jumlah kolom yang paling sering muncul sebagai acuan
-    const counts = {};
-    itemsByRow.forEach(r=>{ if(r.items.length) counts[r.items.length] = (counts[r.items.length]||0) + 1; });
-    let bestCount = 0, bestFreq = 0;
-    Object.keys(counts).forEach(k=>{ if(counts[k] > bestFreq){ bestFreq = counts[k]; bestCount = Number(k); } });
-    const refRow = itemsByRow.find(r => r.items.length === bestCount);
-    if(refRow){
-      const sorted = refRow.items.slice().sort((a,b)=>a.x-b.x);
-      colBounds = sorted.map(it=>{ const w = widthOf(it); return {center: it.x + w/2}; });
-      colLabels = colBounds.map((_,i)=>'Kolom ' + (i+1));
-    } else {
-      colBounds = []; colLabels = [];
-    }
-  }
 
-  const dataRows = [];
-  const startRow = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
-  for(let i=startRow; i<itemsByRow.length; i++){
-    const row = itemsByRow[i];
-    if(!row.items.length || !colBounds.length) continue;
-    const cells = new Array(colBounds.length).fill('');
-    row.items.slice().sort((a,b)=>a.x-b.x).forEach(it=>{
-      const w = widthOf(it);
-      const cx = it.x + w/2;
-      let bestIdx = 0, bestDist = Infinity;
-      colBounds.forEach((c,ci)=>{ const d = Math.abs(c.center - cx); if(d < bestDist){ bestDist = d; bestIdx = ci; } });
-      cells[bestIdx] = cells[bestIdx] ? cells[bestIdx] + ' ' + it.str : it.str;
-    });
-    dataRows.push(cells.map(c=>c.trim()));
-  }
-  return {colLabels, grid: dataRows};
-}
-
-function guessColumn(colLabels, grid, patterns, fallback){
-  for(const re of patterns){
-    const found = colLabels.findIndex(l => re.test(l));
-    if(found >= 0) return found;
-  }
-  return fallback;
-}
-
-function processGrid(idx, itemsByRow){
-  const p = periods[idx];
-  const statusEl = document.getElementById('status-'+idx);
-  const {colLabels, grid} = clusterColumns(itemsByRow);
-  p.colLabels = colLabels;
-  p.grid = grid.filter(r => r.some(c => c)); // buang baris yang benar-benar kosong
-
-  if(!colLabels.length || !p.grid.length){
-    statusEl.textContent = 'Tidak ada baris/kolom yang berhasil dikenali. Coba tambahkan baris manual.';
-    document.getElementById('colSelectWrap-'+idx).style.display = 'none';
-    document.getElementById('confirmWrap-'+idx).style.display = 'block';
-    p.parsedRows = [];
-    renderPreview(idx);
-    return;
-  }
-
-  // tebakan awal kolom mana Nomor / Nama / Basil, berdasarkan judul kolom (jika ada) dan isi datanya
-  const nomorGuess = guessColumn(colLabels, p.grid, [/no\.?\s*kontrak|^kontrak|^no\.?$|^nomor$/i], 0);
-  const namaGuess = guessColumn(colLabels, p.grid, [/nama/i], Math.min(1, colLabels.length-1));
-  let basilGuess = guessColumn(colLabels, p.grid, [/basil|bagi\s*hasil/i], -1);
-  if(basilGuess < 0){
-    // kalau tidak ada judul "Basil", pakai kolom angka terakhir yang isinya mayoritas berupa angka
-    for(let c = colLabels.length-1; c>=0; c--){
-      const sample = p.grid.slice(0, 20).map(r=>r[c]).filter(Boolean);
-      const numericCount = sample.filter(v=>!isNaN(parseRupiah(v))).length;
-      if(sample.length && numericCount / sample.length > 0.6){ basilGuess = c; break; }
-    }
-    if(basilGuess < 0) basilGuess = colLabels.length - 1;
-  }
-
-  const optHtml = colLabels.map((l,i)=>`<option value="${i}">${l || ('Kolom '+(i+1))}</option>`).join('');
-  const selNomor = document.getElementById('colNomor-'+idx);
-  const selNama = document.getElementById('colNama-'+idx);
-  const selBasil = document.getElementById('colBasil-'+idx);
-  selNomor.innerHTML = optHtml; selNomor.value = nomorGuess;
-  selNama.innerHTML = optHtml; selNama.value = namaGuess;
-  selBasil.innerHTML = optHtml; selBasil.value = basilGuess;
-  document.getElementById('colSelectWrap-'+idx).style.display = 'block';
-  document.getElementById('confirmWrap-'+idx).style.display = 'block';
-
-  statusEl.textContent = p.grid.length + ' baris & ' + colLabels.length + ' kolom terdeteksi. Periksa pemetaan kolom di bawah lalu cek pratinjau.';
-  buildParsedRowsFromGrid(idx);
-  renderPreview(idx);
-}
-
-function buildParsedRowsFromGrid(idx){
-  const p = periods[idx];
-  const nomorIdx = parseInt(document.getElementById('colNomor-'+idx).value, 10);
-  const namaIdx = parseInt(document.getElementById('colNama-'+idx).value, 10);
-  const basilIdx = parseInt(document.getElementById('colBasil-'+idx).value, 10);
-  p.parsedRows = p.grid.map(r=>{
-    const nomor = (r[nomorIdx] || '').trim();
-    const nama = (r[namaIdx] || '').trim();
-    const v = parseRupiah(r[basilIdx] || '');
-    return {nomor, nama, numbers: [isNaN(v) ? 0 : v]};
-  }).filter(row => row.nomor || row.nama);
-  p.basilColIndex = 0;
-}
-
-// ---------------- Format angka ----------------
-function parseRupiah(s){
-  s = (s||'').trim();
-  if(!s || !/\d/.test(s)) return NaN;
-  if(s.includes(',')){
-    s = s.replace(/\./g,'').replace(',', '.');
-  } else {
-    s = s.replace(/\./g,'');
-  }
-  const n = parseFloat(s);
-  return isNaN(n) ? NaN : n;
-}
-
-function renderPreview(idx){
-  const p = periods[idx];
-  const container = document.getElementById('preview-'+idx);
-  if(!p.parsedRows.length){
-    container.style.display = 'none';
-    return;
-  }
-  container.style.display = 'block';
-  container.innerHTML = `
-    <table>
-      <thead><tr><th>Nomor Kontrak</th><th>Nama</th><th class="num">Basil (terpilih)</th><th></th></tr></thead>
-      <tbody>
-        ${p.parsedRows.map((r, ri) => `
-          <tr>
-            <td contenteditable="true" onblur="editCell(${idx},${ri},'nomor',this.textContent)">${r.nomor}</td>
-            <td contenteditable="true" onblur="editCell(${idx},${ri},'nama',this.textContent)">${r.nama}</td>
-            <td class="num" contenteditable="true" onblur="editCell(${idx},${ri},'basil',this.textContent)">${
-              r.numbers[0] !== undefined ? fmtNum(r.numbers[0]) : '-'
-            }</td>
-            <td><button class="btn small gray" onclick="deleteRow(${idx},${ri})">✕</button></td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
-
-function editCell(idx, ri, field, value){
-  const p = periods[idx];
-  const row = p.parsedRows[ri];
-  if(!row) return;
-  if(field === 'nomor') row.nomor = value.trim();
-  else if(field === 'nama') row.nama = value.trim();
-  else if(field === 'basil'){
-    if(!row.numbers) row.numbers = [];
-    const v = parseRupiah(value);
-    row.numbers[0] = isNaN(v) ? 0 : v;
-  }
-}
-
-function deleteRow(idx, ri){
-  periods[idx].parsedRows.splice(ri, 1);
-  renderPreview(idx);
-}
-
-function addManualRow(idx){
-  const p = periods[idx];
-  p.parsedRows.push({nomor:'00-00000', nama:'NAMA BARU', numbers:[0]});
-  document.getElementById('confirmWrap-'+idx).style.display = 'block';
-  renderPreview(idx);
-}
-
-function resetPeriod(idx){
-  periods[idx].grid = [];
-  periods[idx].colLabels = [];
-  periods[idx].parsedRows = [];
-  periods[idx].records = null;
-  periods[idx].basilColIndex = 0;
-  periods[idx].label = 'Data ' + (idx+1);
-  document.getElementById('file-'+idx).value = '';
-  document.getElementById('filename-'+idx).textContent = '';
-  document.getElementById('status-'+idx).textContent = 'Belum ada data.';
-  document.getElementById('status-'+idx).classList.remove('ok');
-  document.getElementById('preview-'+idx).style.display = 'none';
-  document.getElementById('colSelectWrap-'+idx).style.display = 'none';
-  document.getElementById('confirmWrap-'+idx).style.display = 'none';
-  updateCompareButton();
-}
-
-function confirmPeriod(idx){
-  const p = periods[idx];
-  if(!p.parsedRows.length){
-    alert('Belum ada baris data untuk periode ini.');
-    return;
-  }
-  p.records = p.parsedRows.map(r => ({
-    nomor: r.nomor,
-    nama: r.nama,
-    basil: r.numbers[0] !== undefined ? r.numbers[0] : 0
-  }));
-  const statusEl = document.getElementById('status-'+idx);
-  statusEl.textContent = '✔ Dikonfirmasi: ' + p.records.length + ' data siap dibandingkan.';
-  statusEl.classList.add('ok');
-  updateCompareButton();
-}
-
-function updateCompareButton(){
-  const filledCount = periods.filter(p => p.records && p.records.length).length;
-  const btn = document.getElementById('btnCompare');
-  const st = document.getElementById('compareStatus');
-  btn.disabled = filledCount < 2;
-  st.textContent = filledCount < 2
-    ? 'Minimal 2 data harus dikonfirmasi terlebih dahulu. (' + filledCount + '/2)'
-    : filledCount + ' data siap dibandingkan: ' + periods.filter(p=>p.records&&p.records.length).map(p=>p.label).join(', ');
-}
-
-// ---------------- Formatting ----------------
-function fmtRp(n){
-  const sign = n < 0 ? '-' : '';
-  n = Math.abs(Math.round(n));
-  return sign + 'Rp ' + n.toLocaleString('id-ID');
-}
-function fmtNum(n){ return Math.round(n).toLocaleString('id-ID'); }
-function cls(n){ return n > 0 ? 'pos' : (n < 0 ? 'neg' : 'zero'); }
-
-// ---------------- Compare & render results ----------------
-document.getElementById('btnCompare').addEventListener('click', compareAll);
-
-function compareAll(){
-  const filled = periods.filter(p => p.records && p.records.length);
-  if(filled.length < 2) return;
-
-  const map = {};
-  filled.forEach((p, pi) => {
-    p.records.forEach(r => {
-      const key = r.nomor;
-      if(!map[key]) map[key] = {nomor: r.nomor, nama: r.nama, values: new Array(filled.length).fill(null)};
-      map[key].values[pi] = r.basil;
-      if(!map[key].nama) map[key].nama = r.nama;
-    });
-  });
-  const all = Object.values(map);
-  const lengkap = all.filter(x => x.values.every(v => v !== null));
-  const tidak = all.filter(x => x.values.some(v => v === null));
-
-  renderResults(filled, lengkap, tidak);
-}
-
-function renderResults(filled, lengkap, tidak){
-  const labels = filled.map(p => p.label);
-  const n = filled.length;
-
-  // ---- summary sums ----
-  const sumSudahPer = labels.map((_, i) => lengkap.reduce((s,x)=>s+(x.values[i]||0), 0));
-  const sumBelumPer = labels.map((_, i) => tidak.reduce((s,x)=>s+(x.values[i]||0), 0));
-
-  // ---- summary cards (meniru gaya: Sudah Bayar / Belum Bayar) ----
-  let cards = [
-    {label:'Total Nama Sudah Bayar', value: fmtNum(lengkap.length), sub:'nomor kontrak cocok ' + labels.join(' & '), kind:'green'},
-    {label:'Total Nama Belum Bayar', value: fmtNum(tidak.length), sub:'hanya tercatat di sebagian data', kind:'red'},
-    {label:'Basil Sudah Bayar ('+labels[0]+')', value: fmtRp(sumSudahPer[0]), sub:'vs '+labels[1]+': '+fmtRp(sumSudahPer[1]) + (n>2 ? ', '+labels[2]+': '+fmtRp(sumSudahPer[2]) : ''), kind:'green'},
-    {label:'Selisih Basil Sudah Bayar', value: fmtRp(sumSudahPer[0]-sumSudahPer[1]), sub: labels[0]+' - '+labels[1], kind:'green'},
-    {label:'Basil Belum Bayar ('+labels[0]+')', value: fmtRp(sumBelumPer[0]), sub:'vs '+labels[1]+': '+fmtRp(sumBelumPer[1]) + (n>2 ? ', '+labels[2]+': '+fmtRp(sumBelumPer[2]) : ''), kind:'red'},
-    {label:'Selisih Basil Belum Bayar', value: fmtRp(sumBelumPer[0]-sumBelumPer[1]), sub: labels[0]+' - '+labels[1], kind:'red'},
-  ];
-  if(n > 2){
-    for(let i=1; i<n-1; i++){
-      cards.push({label:'Selisih Basil Sudah Bayar ('+labels[i]+' - '+labels[i+1]+')', value: fmtRp(sumSudahPer[i]-sumSudahPer[i+1]), sub:'', kind:'green'});
-      cards.push({label:'Selisih Basil Belum Bayar ('+labels[i]+' - '+labels[i+1]+')', value: fmtRp(sumBelumPer[i]-sumBelumPer[i+1]), sub:'', kind:'red'});
-    }
-  }
-
-  // ---- table headers ----
-  const sudahHeaders = ['Nomor Kontrak','Nama', ...labels.map(l=>'Basil '+l)];
-  for(let i=0;i<n-1;i++) sudahHeaders.push('Selisih ('+labels[i]+' - '+labels[i+1]+')');
-
-  const belumHeaders = ['Nomor Kontrak','Nama','Status', ...labels.map(l=>'Basil '+l)];
-
-  const html = `
-    <div class="cards">${cards.map(c => `
-      <div class="card ${c.kind}">
-        <div class="label">${c.label}</div>
-        <div class="value">${c.value}</div>
-        ${c.sub ? `<div class="sub">${c.sub}</div>` : ''}
-      </div>
-    `).join('')}</div>
-
-    <section class="sudah">
-      <div class="sec-head">
-        <h2>✅ Sudah Bayar <span class="badge green">${lengkap.length} orang</span></h2>
-        <input type="text" class="search-box" id="searchSudah" placeholder="Cari nama / nomor kontrak...">
-      </div>
-      <div class="table-scroll">
-        <table id="tableSudah">
-          <thead><tr>${sudahHeaders.map((h,i)=>`<th data-key="${i}" class="${i>1?'num':''}">${h}</th>`).join('')}</tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="belum">
-      <div class="sec-head">
-        <h2>⚠️ Belum Bayar <span class="badge red">${tidak.length} orang</span></h2>
-        <input type="text" class="search-box" id="searchBelum" placeholder="Cari nama / nomor kontrak...">
-      </div>
-      <div class="table-scroll">
-        <table id="tableBelum">
-          <thead><tr>${belumHeaders.map((h,i)=>`<th data-key="${i}" class="${i>2?'num':''}">${h}</th>`).join('')}</tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="recap">
-      <div class="sec-head"><h2>📊 Rekap Selisih Sudah Bayar vs Belum Bayar</h2></div>
-      <table class="recap-table">
-        <thead><tr><th>Keterangan</th><th class="num">Sudah Bayar</th><th class="num">Belum Bayar</th><th class="num">Selisih (Sudah - Belum)</th></tr></thead>
-        <tbody>
-          <tr><td>Jumlah Nama (orang)</td><td class="num">${fmtNum(lengkap.length)}</td><td class="num">${fmtNum(tidak.length)}</td><td class="num">${fmtNum(lengkap.length-tidak.length)}</td></tr>
-          ${labels.map((lb,i)=>`<tr><td>Total Basil ${lb}</td><td class="num">${fmtRp(sumSudahPer[i])}</td><td class="num">${fmtRp(sumBelumPer[i])}</td><td class="num">${fmtRp(sumSudahPer[i]-sumBelumPer[i])}</td></tr>`).join('')}
-          <tr class="total-row"><td>Selisih Basil (${labels[1]} - ${labels[0]})</td><td class="num">${fmtRp(sumSudahPer[1]-sumSudahPer[0])}</td><td class="num">${fmtRp(sumBelumPer[1]-sumBelumPer[0])}</td><td class="num">${fmtRp((sumSudahPer[1]-sumSudahPer[0])-(sumBelumPer[1]-sumBelumPer[0]))}</td></tr>
-        </tbody>
-      </table>
-    </section>
-  `;
-  document.getElementById('resultsArea').innerHTML = html;
-
-  function rowSudah(x){
-    return `<tr>
-      <td>${x.nomor}</td><td>${x.nama}</td>
-      ${x.values.map(v=>`<td class="num">${fmtRp(v)}</td>`).join('')}
-      ${Array.from({length:n-1}, (_,i)=>{
-        const d = x.values[i]-x.values[i+1];
-        return `<td class="num ${cls(d)}">${fmtRp(d)}</td>`;
-      }).join('')}
-    </tr>`;
-  }
-  function renderSudahRows(rows){
-    document.querySelector('#tableSudah tbody').innerHTML = rows.map(rowSudah).join('');
-  }
-  function rowBelum(x){
-    const presentIdx = labels.map((l,i)=>x.values[i]!==null ? i : null).filter(i=>i!==null);
-    let status, cls2;
-    if(presentIdx.length === 1){
-      status = 'Hanya ' + labels[presentIdx[0]];
-      cls2 = 'p' + presentIdx[0];
-    } else {
-      const present = presentIdx.map(i=>labels[i]);
-      status = 'Ada di: ' + present.join(', ');
-      cls2 = 'p' + presentIdx[0];
-    }
-    return `<tr>
-      <td>${x.nomor}</td><td>${x.nama}</td>
-      <td><span class="status-tag ${cls2}">${status}</span></td>
-      ${x.values.map(v=> v===null ? '<td class="num">-</td>' : `<td class="num">${fmtRp(v)}</td>`).join('')}
-    </tr>`;
-  }
-  function renderBelumRows(rows){
-    document.querySelector('#tableBelum tbody').innerHTML = rows.map(rowBelum).join('');
-  }
-  renderSudahRows(lengkap);
-  renderBelumRows(tidak);
-
-  document.getElementById('searchSudah').addEventListener('input', e=>{
-    const q = e.target.value.toLowerCase();
-    renderSudahRows(lengkap.filter(x => x.nama.toLowerCase().includes(q) || x.nomor.toLowerCase().includes(q)));
-  });
-  document.getElementById('searchBelum').addEventListener('input', e=>{
-    const q = e.target.value.toLowerCase();
-    renderBelumRows(tidak.filter(x => x.nama.toLowerCase().includes(q) || x.nomor.toLowerCase().includes(q)));
-  });
-
-  // sortable headers
-  function makeSortable(tableId, dataRef, renderFn, getVal){
-    const table = document.getElementById(tableId);
-    let sortState = {};
-    table.querySelectorAll('thead th[data-key]').forEach(th => {
-      th.addEventListener('click', () => {
-        const key = th.dataset.key;
-        sortState.dir = (sortState.key === key && sortState.dir === 'asc') ? 'desc' : 'asc';
-        sortState.key = key;
-        const sorted = [...dataRef].sort((a,b) => {
-          let va = getVal(a, key), vb = getVal(b, key);
-          if (typeof va === 'string'){ va = va.toLowerCase(); vb = vb.toLowerCase(); }
-          if (va < vb) return sortState.dir === 'asc' ? -1 : 1;
-          if (va > vb) return sortState.dir === 'asc' ? 1 : -1;
-          return 0;
-        });
-        renderFn(sorted);
+    if(haveColumns){
+      valueItems.forEach(it=>{
+        if(MONEY_RE.test(it.str)){
+          const col = nearestColumn(it.x, columnX);
+          const val = toNum(it.str);
+          if(col === 'pokok') pokok = val;
+          else if(col === 'basil') basil = val;
+          else if(col === 'kifarat') kifarat = val;
+          else if(col === 'pembiayaan') pembiayaan = val;
+        }
       });
-    });
+    } else {
+      const moneyTokens = valueItems.map(it=>it.str);
+      if(moneyTokens.length >= 2 &&
+         MONEY_RE.test(moneyTokens[moneyTokens.length-1]) &&
+         INT_RE.test(moneyTokens[moneyTokens.length-2])){
+        pembiayaan = toNum(moneyTokens[moneyTokens.length-1]);
+        const moneyPart = moneyTokens.slice(0, moneyTokens.length-2).filter(t=>MONEY_RE.test(t));
+        if(moneyPart[0]!==undefined) pokok = toNum(moneyPart[0]);
+        if(moneyPart[1]!==undefined) basil = toNum(moneyPart[1]);
+        if(moneyPart[2]!==undefined) kifarat = toNum(moneyPart[2]);
+      } else {
+        const moneyPart = moneyTokens.filter(t=>MONEY_RE.test(t));
+        if(moneyPart[0]!==undefined) pokok = toNum(moneyPart[0]);
+        if(moneyPart[1]!==undefined) basil = toNum(moneyPart[1]);
+      }
+    }
+
+    // lewati baris yang hanya berisi nilai Pembiayaan (Pokok, Basil, Kifarat, Ke semuanya kosong/0)
+    // -> ini bukan mutasi angsuran, jadi tidak dimasukkan ke Sudah Bayar maupun Belum Bayar
+    if(pokok === 0 && basil === 0 && kifarat === 0 && ke === null && pembiayaan > 0){
+      skipped++;
+      continue;
+    }
+
+    records.push({nomor, nama, pokok, basil, kifarat, pembiayaan, ke});
   }
-  makeSortable('tableSudah', lengkap, renderSudahRows, (x,key)=>{
-    const k = parseInt(key,10);
-    if(k===0) return x.nomor;
-    if(k===1) return x.nama;
-    if(k < 2+n) return x.values[k-2];
-    return x.values[k-2-n] - x.values[k-2-n+1];
-  });
-  makeSortable('tableBelum', tidak, renderBelumRows, (x,key)=>{
-    const k = parseInt(key,10);
-    if(k===0) return x.nomor;
-    if(k===1) return x.nama;
-    if(k===2) return x.values.filter(v=>v!==null).length;
-    return x.values[k-3] === null ? -Infinity : x.values[k-3];
-  });
+  return {records, skipped};
 }
 
+async function extractRecords(file){
+  const rows = await extractRows(file);
+  const columnX = detectColumns(rows);
+  return parseRecords(rows, columnX);
+}
 
-updateCompareButton();
+function reconcile(records1, records2){
+  const pool2 = records2.map(r => ({...r, used:false}));
+  const idx2 = new Map();
+  pool2.forEach((r, i)=>{
+    const key = r.nomor + '|' + r.nama + '|' + r.basil;
+    if(!idx2.has(key)) idx2.set(key, []);
+    idx2.get(key).push(i);
+  });
+
+  const paid = [];
+  const unpaid = [];
+
+  records1.forEach(r1=>{
+    const key = r1.nomor + '|' + r1.nama + '|' + r1.basil;
+    const bucket = idx2.get(key);
+    let matchIdx = -1;
+    if(bucket){
+      for(const i of bucket){ if(!pool2[i].used){ matchIdx = i; break; } }
+    }
+    if(matchIdx >= 0){
+      pool2[matchIdx].used = true;
+      paid.push({
+        nomor: r1.nomor,
+        nama: r1.nama,
+        basil1: r1.basil,
+        basil2: pool2[matchIdx].basil
+      });
+    } else {
+      unpaid.push({
+        nomor: r1.nomor,
+        nama: r1.nama,
+        basil1: r1.basil
+      });
+    }
+  });
+
+  return {paid, unpaid};
+}
+
+const numFmt = new Intl.NumberFormat('id-ID', {maximumFractionDigits:0});
+const fmt = v => numFmt.format(Math.round(v));
+
+function renderResults(paid, unpaid, skipped1, skipped2){
+  const paidBody = document.getElementById('paidBody');
+  const unpaidBody = document.getElementById('unpaidBody');
+  paidBody.innerHTML = '';
+  unpaidBody.innerHTML = '';
+
+  if(paid.length === 0){
+    paidBody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada data yang cocok</td></tr>';
+  } else {
+    paid.forEach((r, i)=>{
+      const diff = r.basil1 - r.basil2;
+      const diffClass = diff > 0 ? 'diff-pos' : (diff < 0 ? 'diff-neg' : '');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td class="nomor">${r.nomor}</td>
+        <td class="name">${r.nama}</td>
+        <td class="num">${fmt(r.basil1)}</td>
+        <td class="num">${fmt(r.basil2)}</td>
+        <td class="num ${diffClass}">${fmt(diff)}</td>
+      `;
+      paidBody.appendChild(tr);
+    });
+  }
+
+  let unpaidTotal = 0;
+  if(unpaid.length === 0){
+    unpaidBody.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
+  } else {
+    unpaid.forEach((r, i)=>{
+      unpaidTotal += r.basil1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td class="nomor">${r.nomor}</td>
+        <td class="name">${r.nama}</td>
+        <td class="num">${fmt(r.basil1)}</td>
+      `;
+      unpaidBody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('unpaidTotalCell').textContent = fmt(unpaidTotal);
+  document.getElementById('paidCountLabel').textContent = paid.length + ' baris';
+  document.getElementById('unpaidCountLabel').textContent = unpaid.length + ' baris';
+
+  document.getElementById('sumPaidCount').textContent = paid.length;
+  document.getElementById('sumPaidTotal').textContent = fmt(paid.reduce((a,r)=>a+r.basil1,0)) + ' total Basil Data 1';
+  document.getElementById('sumUnpaidCount').textContent = unpaid.length;
+  document.getElementById('sumUnpaidTotal').textContent = fmt(unpaidTotal) + ' total Basil Data 1';
+
+  const skippedNote = document.getElementById('skippedNote');
+  const totalSkipped = (skipped1||0) + (skipped2||0);
+  if(skippedNote){
+    skippedNote.textContent = totalSkipped > 0
+      ? `${totalSkipped} baris diabaikan (${skipped1||0} dari Data 1, ${skipped2||0} dari Data 2) karena kolom Pokok, Basil, Kifarat, dan Ke kosong — hanya ada nilai Pembiayaan.`
+      : '';
+  }
+
+  document.getElementById('results').style.display = 'block';
+}
+
+document.getElementById('run').addEventListener('click', async ()=>{
+  showError('');
+  document.getElementById('results').style.display = 'none';
+  const btn = document.getElementById('run');
+  btn.disabled = true;
+  try{
+    setStatus('Membaca dokumen PDF 1...', true);
+    const r1 = await extractRecords(state.f1);
+    setStatus('Membaca dokumen PDF 2...', true);
+    const r2 = await extractRecords(state.f2);
+
+    if(r1.records.length === 0 || r2.records.length === 0){
+      throw new Error('Tidak ditemukan baris data yang dapat dibaca pada salah satu file. Pastikan format PDF sesuai laporan mutasi harian pinjaman.');
+    }
+
+    setStatus('Mencocokkan Nomor, Nama & Basil...', true);
+    const {paid, unpaid} = reconcile(r1.records, r2.records);
+
+    setStatus('Selesai', false);
+    renderResults(paid, unpaid, r1.skipped, r2.skipped);
+  } catch(err){
+    console.error(err);
+    showError('Terjadi kendala saat memproses: ' + err.message);
+    setStatus('', false);
+  } finally {
+    btn.disabled = false;
+  }
+});
 </script>
-
 </body>
 </html>
