@@ -242,11 +242,32 @@
     font-size:21px;
     margin:0;
   }
+  h3.sub-title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:15.5px;
+    margin:0 0 10px 0;
+  }
   .tbl-count{
     font-family:'IBM Plex Mono',monospace;
     font-size:12px;
     color:var(--ink-soft);
     margin-left:auto;
+  }
+
+  .unpaid-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:800px){ .unpaid-grid{grid-template-columns:1fr;} }
+  .unpaid-col .table-scroll{max-height:460px;}
+  .unpaid-col .sub-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    font-weight:400;
+    margin-left:8px;
   }
 
   .table-scroll{
@@ -288,8 +309,6 @@
   }
   td.name{font-weight:500;}
   td.nomor{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12.5px;}
-  td.diff-pos{color:var(--gold);}
-  td.diff-neg{color:var(--rust);}
   .empty-row td{
     text-align:center;
     color:var(--ink-soft);
@@ -381,10 +400,16 @@
               <th>Nama</th>
               <th class="num">Basil Data 1</th>
               <th class="num">Basil Data 2</th>
-              <th class="num">Selisih (1-2)</th>
             </tr>
           </thead>
           <tbody id="paidBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Total Basil</td>
+              <td class="num" id="paidTotal1Cell">0</td>
+              <td class="num" id="paidTotal2Cell">0</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>
@@ -395,29 +420,56 @@
         <span class="tag unpaid">tidak match</span>
         <span class="tbl-count" id="unpaidCountLabel"></span>
       </div>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>No.</th>
-              <th>Nomor</th>
-              <th>Nama</th>
-              <th class="num">Basil Data 1</th>
-            </tr>
-          </thead>
-          <tbody id="unpaidBody"></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3">Total Akumulasi Basil Data 1</td>
-              <td class="num" id="unpaidTotalCell">0</td>
-            </tr>
-          </tfoot>
-        </table>
+      <div class="unpaid-grid">
+        <div class="unpaid-col">
+          <h3 class="sub-title">Tidak Match &mdash; Data 1<span class="sub-count" id="unpaid1CountLabel"></span></h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Nomor</th>
+                  <th>Nama</th>
+                  <th class="num">Basil Data 1</th>
+                </tr>
+              </thead>
+              <tbody id="unpaidBody1"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3">Total</td>
+                  <td class="num" id="unpaidTotal1Cell">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="unpaid-col">
+          <h3 class="sub-title">Tidak Match &mdash; Data 2<span class="sub-count" id="unpaid2CountLabel"></span></h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Nomor</th>
+                  <th>Nama</th>
+                  <th class="num">Basil Data 2</th>
+                </tr>
+              </thead>
+              <tbody id="unpaidBody2"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3">Total</td>
+                  <td class="num" id="unpaidTotal2Cell">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
     <footer class="note">
-      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan "Sudah Bayar" (Basil boleh berbeda, selisihnya ditampilkan); yang tidak ditemukan pasangannya di Data 2 dikategorikan "Belum Bayar". Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
+      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan "Sudah Bayar". Yang tidak ditemukan pasangannya ditampilkan di "Belum Bayar", dipisah menjadi baris yang hanya ada di Data 1 dan baris yang hanya ada di Data 2. Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
       <div id="skippedNote" style="margin-top:8px;"></div>
     </footer>
 
@@ -629,7 +681,7 @@ function reconcile(records1, records2){
   });
 
   const paid = [];
-  const unpaid = [];
+  const unpaid1 = [];
 
   records1.forEach(r1=>{
     const key = r1.nomor + '|' + r1.nama;
@@ -647,7 +699,7 @@ function reconcile(records1, records2){
         basil2: pool2[matchIdx].basil
       });
     } else {
-      unpaid.push({
+      unpaid1.push({
         nomor: r1.nomor,
         nama: r1.nama,
         basil1: r1.basil
@@ -655,24 +707,31 @@ function reconcile(records1, records2){
     }
   });
 
-  return {paid, unpaid};
+  const unpaid2 = pool2
+    .filter(r => !r.used)
+    .map(r => ({ nomor: r.nomor, nama: r.nama, basil2: r.basil }));
+
+  return {paid, unpaid1, unpaid2};
 }
 
 const numFmt = new Intl.NumberFormat('id-ID', {maximumFractionDigits:0});
 const fmt = v => numFmt.format(Math.round(v));
 
-function renderResults(paid, unpaid, skipped1, skipped2){
+function renderResults(paid, unpaid1, unpaid2, skipped1, skipped2){
   const paidBody = document.getElementById('paidBody');
-  const unpaidBody = document.getElementById('unpaidBody');
+  const unpaidBody1 = document.getElementById('unpaidBody1');
+  const unpaidBody2 = document.getElementById('unpaidBody2');
   paidBody.innerHTML = '';
-  unpaidBody.innerHTML = '';
+  unpaidBody1.innerHTML = '';
+  unpaidBody2.innerHTML = '';
 
+  let paidTotal1 = 0, paidTotal2 = 0;
   if(paid.length === 0){
-    paidBody.innerHTML = '<tr class="empty-row"><td colspan="6">Tidak ada data yang cocok</td></tr>';
+    paidBody.innerHTML = '<tr class="empty-row"><td colspan="5">Tidak ada data yang cocok</td></tr>';
   } else {
     paid.forEach((r, i)=>{
-      const diff = r.basil1 - r.basil2;
-      const diffClass = diff > 0 ? 'diff-pos' : (diff < 0 ? 'diff-neg' : '');
+      paidTotal1 += r.basil1;
+      paidTotal2 += r.basil2;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${i+1}</td>
@@ -680,18 +739,19 @@ function renderResults(paid, unpaid, skipped1, skipped2){
         <td class="name">${r.nama}</td>
         <td class="num">${fmt(r.basil1)}</td>
         <td class="num">${fmt(r.basil2)}</td>
-        <td class="num ${diffClass}">${fmt(diff)}</td>
       `;
       paidBody.appendChild(tr);
     });
   }
+  document.getElementById('paidTotal1Cell').textContent = fmt(paidTotal1);
+  document.getElementById('paidTotal2Cell').textContent = fmt(paidTotal2);
 
-  let unpaidTotal = 0;
-  if(unpaid.length === 0){
-    unpaidBody.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
+  let unpaidTotal1 = 0;
+  if(unpaid1.length === 0){
+    unpaidBody1.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
   } else {
-    unpaid.forEach((r, i)=>{
-      unpaidTotal += r.basil1;
+    unpaid1.forEach((r, i)=>{
+      unpaidTotal1 += r.basil1;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${i+1}</td>
@@ -699,18 +759,40 @@ function renderResults(paid, unpaid, skipped1, skipped2){
         <td class="name">${r.nama}</td>
         <td class="num">${fmt(r.basil1)}</td>
       `;
-      unpaidBody.appendChild(tr);
+      unpaidBody1.appendChild(tr);
     });
   }
 
-  document.getElementById('unpaidTotalCell').textContent = fmt(unpaidTotal);
+  let unpaidTotal2 = 0;
+  if(unpaid2.length === 0){
+    unpaidBody2.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
+  } else {
+    unpaid2.forEach((r, i)=>{
+      unpaidTotal2 += r.basil2;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td class="nomor">${r.nomor}</td>
+        <td class="name">${r.nama}</td>
+        <td class="num">${fmt(r.basil2)}</td>
+      `;
+      unpaidBody2.appendChild(tr);
+    });
+  }
+
+  document.getElementById('unpaidTotal1Cell').textContent = fmt(unpaidTotal1);
+  document.getElementById('unpaidTotal2Cell').textContent = fmt(unpaidTotal2);
+
   document.getElementById('paidCountLabel').textContent = paid.length + ' baris';
-  document.getElementById('unpaidCountLabel').textContent = unpaid.length + ' baris';
+  const unpaidTotalCount = unpaid1.length + unpaid2.length;
+  document.getElementById('unpaidCountLabel').textContent = unpaidTotalCount + ' baris';
+  document.getElementById('unpaid1CountLabel').textContent = unpaid1.length + ' baris';
+  document.getElementById('unpaid2CountLabel').textContent = unpaid2.length + ' baris';
 
   document.getElementById('sumPaidCount').textContent = paid.length;
-  document.getElementById('sumPaidTotal').textContent = fmt(paid.reduce((a,r)=>a+r.basil1,0)) + ' total Basil Data 1';
-  document.getElementById('sumUnpaidCount').textContent = unpaid.length;
-  document.getElementById('sumUnpaidTotal').textContent = fmt(unpaidTotal) + ' total Basil Data 1';
+  document.getElementById('sumPaidTotal').textContent = fmt(paidTotal1) + ' / ' + fmt(paidTotal2) + ' (Data 1 / Data 2)';
+  document.getElementById('sumUnpaidCount').textContent = unpaidTotalCount;
+  document.getElementById('sumUnpaidTotal').textContent = fmt(unpaidTotal1) + ' / ' + fmt(unpaidTotal2) + ' (Data 1 / Data 2)';
 
   const skippedNote = document.getElementById('skippedNote');
   const totalSkipped = (skipped1||0) + (skipped2||0);
@@ -739,10 +821,10 @@ document.getElementById('run').addEventListener('click', async ()=>{
     }
 
     setStatus('Mencocokkan Nomor, Nama & Basil...', true);
-    const {paid, unpaid} = reconcile(r1.records, r2.records);
+    const {paid, unpaid1, unpaid2} = reconcile(r1.records, r2.records);
 
     setStatus('Selesai', false);
-    renderResults(paid, unpaid, r1.skipped, r2.skipped);
+    renderResults(paid, unpaid1, unpaid2, r1.skipped, r2.skipped);
   } catch(err){
     console.error(err);
     showError('Terjadi kendala saat memproses: ' + err.message);
