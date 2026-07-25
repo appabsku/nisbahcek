@@ -322,7 +322,7 @@
       <div class="brand-mark">AB</div>
       <div>
         <h1>Rekonsiliasi Mutasi Pinjaman</h1>
-        <div class="subtitle">Unggah dua laporan &mdash; sistem mencocokkan Nomor, Nama &amp; Basil secara otomatis</div>
+        <div class="subtitle">Unggah dua laporan &mdash; sistem mencocokkan Nomor &amp; Nama secara otomatis</div>
       </div>
     </div>
     <div class="ledger-no" id="todayNo"></div>
@@ -417,7 +417,7 @@
     </section>
 
     <footer class="note">
-      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor, Nama, dan Basil yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Baris dengan kombinasi identik pada kedua data dikategorikan "Sudah Bayar"; sisanya dikategorikan "Belum Bayar". Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
+      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan "Sudah Bayar" (Basil boleh berbeda, selisihnya ditampilkan); yang tidak ditemukan pasangannya di Data 2 dikategorikan "Belum Bayar". Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
       <div id="skippedNote" style="margin-top:8px;"></div>
     </footer>
 
@@ -623,7 +623,7 @@ function reconcile(records1, records2){
   const pool2 = records2.map(r => ({...r, used:false}));
   const idx2 = new Map();
   pool2.forEach((r, i)=>{
-    const key = r.nomor + '|' + r.nama + '|' + r.basil;
+    const key = r.nomor + '|' + r.nama;
     if(!idx2.has(key)) idx2.set(key, []);
     idx2.get(key).push(i);
   });
@@ -632,7 +632,7 @@ function reconcile(records1, records2){
   const unpaid = [];
 
   records1.forEach(r1=>{
-    const key = r1.nomor + '|' + r1.nama + '|' + r1.basil;
+    const key = r1.nomor + '|' + r1.nama;
     const bucket = idx2.get(key);
     let matchIdx = -1;
     if(bucket){
