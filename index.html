@@ -37,8 +37,9 @@
     min-height:100vh;
     padding:0 0 90px;
     -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
   }
-  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 24px;width:100%;}
 
   /* ===== App header ===== */
   header.top{
@@ -67,7 +68,7 @@
     background:rgba(255,255,255,.07);
   }
   .top-inner{
-    max-width:1040px;margin:0 auto;padding:0 24px;
+    max-width:1280px;margin:0 auto;padding:0 24px;
     display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
     position:relative;z-index:1;
   }
@@ -324,7 +325,8 @@
   .unpaid-grid{
     display:grid;
     grid-template-columns:1fr 1fr 1fr;
-    gap:18px;
+    gap:16px;
+    min-width:0;
   }
   @media (max-width:1000px){ .unpaid-grid{grid-template-columns:1fr 1fr;} }
   @media (max-width:640px){ .unpaid-grid{grid-template-columns:1fr;} }
@@ -332,6 +334,15 @@
     border:1.5px solid var(--biru-terang);
     background:linear-gradient(180deg, var(--biru-soft), #fff 40%);
   }
+  .unpaid-col{
+    min-width:0;
+  }
+  .unpaid-col table{font-size:12px;table-layout:fixed;width:100%;}
+  .unpaid-col thead th{padding:9px 8px;font-size:9.5px;}
+  .unpaid-col tbody td{padding:7px 8px;white-space:normal;word-break:break-word;overflow-wrap:anywhere;}
+  .unpaid-col td.nomor{font-size:10.5px;}
+  .unpaid-col td.name{line-height:1.3;}
+  .unpaid-col td.num{font-size:11.5px;}
   .unpaid-col .table-scroll{max-height:460px;}
   .unpaid-col{
     background:var(--card);
@@ -596,7 +607,7 @@
                   <th>No.</th>
                   <th>Nomor</th>
                   <th>Nama</th>
-                  <th class="num">Basil Data 1</th>
+                  <th class="num">Basil D1</th>
                 </tr>
               </thead>
               <tbody id="unpaidBody1"></tbody>
@@ -618,7 +629,7 @@
                   <th>No.</th>
                   <th>Nomor</th>
                   <th>Nama</th>
-                  <th class="num">Basil Data 2</th>
+                  <th class="num">Basil D2</th>
                 </tr>
               </thead>
               <tbody id="unpaidBody2"></tbody>
@@ -681,7 +692,7 @@
 
     <footer class="note">
       <span class="cap">Catatan</span>
-      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan &ldquo;Sudah Bayar&rdquo;. Yang tidak ditemukan pasangannya ditampilkan di &ldquo;Belum Bayar&rdquo;; baris dengan Nomor &amp; Nama yang sama pada sisi yang sama digabung menjadi satu baris dengan Basil dijumlahkan. Kolom &ldquo;Nama Tidak Ditemukan di Sisi Lain&rdquo; hanya menampilkan nama yang benar-benar tidak ada pasangannya di sisi lain &mdash; jika sebuah nama muncul di Belum Bayar Data 1 maupun Data 2 (meski Nomor berbeda), nama tersebut dianggap sudah cocok secara nama dan tidak dimasukkan ke kolom ini. Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
+      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan &ldquo;Sudah Bayar&rdquo;. Yang tidak ditemukan pasangannya ditampilkan di &ldquo;Belum Bayar&rdquo;; baris dengan Nomor &amp; Nama yang sama pada sisi yang sama digabung menjadi satu baris dengan Basil dijumlahkan. Kolom &ldquo;Nama Tidak Ditemukan di Sisi Lain&rdquo; berisi nama yang hanya muncul di Data 1 atau Data 2 saja (tidak di keduanya), lalu dicocokkan sekali lagi dengan Nama pada &ldquo;Sudah Bayar&rdquo;: bila nama tersebut ternyata ditemukan di Sudah Bayar, nama itu dikeluarkan dari kolom ini; totalnya dihitung murni dari isi kolom ini sendiri. Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
       <div id="skippedNote" style="margin-top:8px;"></div>
     </footer>
 
@@ -1033,9 +1044,10 @@ function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2){
   document.getElementById('unpaidTotal2Cell').textContent = fmt(unpaidTotal2);
 
   // ===== Kolom 3: Nama yang tidak ditemukan sama sekali di sisi lain =====
+  // Tahap 1: cari nama yang hanya muncul di salah satu sisi (Data 1 saja / Data 2 saja)
   const byName1 = groupByNamaOnly(unpaid1Raw, 'basil1');
   const byName2 = groupByNamaOnly(unpaid2Raw, 'basil2');
-  const col3 = [];
+  let col3 = [];
   byName1.forEach((entry, nama)=>{
     if(!byName2.has(nama)) col3.push({nama, basil: entry.basil1});
   });
@@ -1043,8 +1055,16 @@ function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2){
     if(!byName1.has(nama)) col3.push({nama, basil: entry.basil2});
   });
 
+  // Tahap 2: cocokkan kembali nama-nama tersebut dengan data "Sudah Bayar" (berdasarkan Nama).
+  // Jika nama ditemukan di Sudah Bayar, berarti sudah match -> keluarkan dari kolom 3.
+  // Yang tetap tidak match dengan Sudah Bayar -> tetap masuk kolom 3.
+  const paidNames = new Set(paid.map(r => r.nama));
+  col3 = col3.filter(r => !paidNames.has(r.nama));
+
   const unpaidBody3 = document.getElementById('unpaidBody3');
   unpaidBody3.innerHTML = '';
+  // Total kolom 3 dihitung murni dari isi kolom 3 setelah penyaringan di atas,
+  // bukan dari total Data 1 maupun total Data 2.
   let unpaidTotal3 = 0;
   if(col3.length === 0){
     unpaidBody3.innerHTML = '<tr class="empty-row"><td colspan="3">Tidak ada data</td></tr>';
