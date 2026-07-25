@@ -530,8 +530,15 @@
   }
   .selisih-scroll table{width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse;}
   .selisih-scroll col.s-no{width:8%;}
-  .selisih-scroll col.s-name{width:44%;}
-  .selisih-scroll col.s-basil{width:16%;}
+  .selisih-scroll col.s-sisi{width:16%;}
+  .selisih-scroll col.s-name{width:52%;}
+  .selisih-scroll col.s-basil{width:24%;}
+  .selisih-scroll .tag{
+    display:inline-block;font-family:'Poppins',sans-serif;font-weight:600;font-size:10px;
+    padding:3px 9px;border-radius:999px;white-space:nowrap;
+  }
+  .selisih-scroll .tag.d1{background:rgba(0,169,224,.22);color:#BFE9FA;}
+  .selisih-scroll .tag.d2{background:rgba(243,111,33,.22);color:#FFD8B8;}
   .selisih-scroll thead th{
     position:sticky;top:0;background:#013A6E;color:#fff;
     font-family:'Poppins',sans-serif;font-weight:500;font-size:9.5px;
@@ -774,31 +781,28 @@
         <div class="selisih-detail">
           <div class="selisih-head">
             <div>
-              <h4>Rincian Nama &amp; Basil di Balik Selisih</h4>
-              <div class="selisih-desc">Diurutkan dari selisih Basil D2 &minus; D1 terbesar</div>
+              <h4>Nama yang Menyebabkan Selisih Jumlah Nama</h4>
+              <div class="selisih-desc">Nama yang hanya muncul di Belum Bayar salah satu sisi saja (tidak ada di sisi lain sama sekali)</div>
             </div>
             <span class="selisih-count" id="selisihCountLabel"></span>
           </div>
           <div class="selisih-scroll">
             <table id="selisihTable">
               <colgroup>
-                <col class="s-no"><col class="s-name"><col class="s-basil"><col class="s-basil"><col class="s-basil">
+                <col class="s-no"><col class="s-sisi"><col class="s-name"><col class="s-basil">
               </colgroup>
               <thead>
                 <tr>
                   <th>No.</th>
+                  <th>Sisi</th>
                   <th>Nama</th>
-                  <th class="num">Basil D1</th>
-                  <th class="num">Basil D2</th>
-                  <th class="num">Selisih</th>
+                  <th class="num">Basil</th>
                 </tr>
               </thead>
               <tbody id="selisihBody"></tbody>
               <tfoot>
                 <tr>
-                  <td colspan="2">Total</td>
-                  <td class="num" id="selisihTotal1Cell">0</td>
-                  <td class="num" id="selisihTotal2Cell">0</td>
+                  <td colspan="3">Hanya Data 1: <span id="selisihCount1">0</span> nama &middot; Hanya Data 2: <span id="selisihCount2">0</span> nama</td>
                   <td class="num" id="selisihTotalDiffCell">0</td>
                 </tr>
               </tfoot>
@@ -1098,42 +1102,51 @@ function groupByNamaOnly(records, basilKey){
 const numFmt = new Intl.NumberFormat('id-ID', {maximumFractionDigits:0});
 const fmt = v => numFmt.format(Math.round(v));
 
-// Rincian nama & Basil di balik angka "Selisih Basil (Data 2 - Data 1)" dan
-// "Selisih jumlah nama" pada kartu Kesimpulan Analisa. Digabung berdasarkan
-// Nama saja (lintas Nomor) dari seluruh baris Belum Bayar Data 1 & Data 2.
-function renderSelisihDetail(byName1, byName2, unpaidTotal1, unpaidTotal2, basilDiff){
-  const namaSet = new Set([...byName1.keys(), ...byName2.keys()]);
-  const rows = [];
-  namaSet.forEach(nama=>{
-    const b1 = byName1.has(nama) ? byName1.get(nama).basil1 : 0;
-    const b2 = byName2.has(nama) ? byName2.get(nama).basil2 : 0;
-    rows.push({nama, basil1:b1, basil2:b2, diff:b2-b1});
+// Nama yang hanya muncul di Belum Bayar salah satu sisi saja (tidak ditemukan
+// nama yang sama sekalipun di sisi lain). Selisih jumlah antara kedua daftar
+// ini (Hanya Data 1 - Hanya Data 2) adalah angka "Selisih jumlah nama" yang
+// ditampilkan di kartu Kesimpulan Analisa, jadi daftarnya konsisten dengan angkanya.
+function computeOnlySides(byName1, byName2){
+  const onlyD1 = [];
+  const onlyD2 = [];
+  byName1.forEach((entry, nama)=>{
+    if(!byName2.has(nama)) onlyD1.push({nama, basil: entry.basil1, sisi:'D1'});
   });
-  rows.sort((a,b)=> Math.abs(b.diff) - Math.abs(a.diff));
+  byName2.forEach((entry, nama)=>{
+    if(!byName1.has(nama)) onlyD2.push({nama, basil: entry.basil2, sisi:'D2'});
+  });
+  return {onlyD1, onlyD2};
+}
+
+function renderSelisihDetail(onlyD1, onlyD2){
+  const rows = [...onlyD1, ...onlyD2].sort((a,b)=> b.basil - a.basil);
+  const totalOnly1 = onlyD1.reduce((s,r)=> s + r.basil, 0);
+  const totalOnly2 = onlyD2.reduce((s,r)=> s + r.basil, 0);
 
   const body = document.getElementById('selisihBody');
   body.innerHTML = '';
   if(rows.length === 0){
-    body.innerHTML = '<tr class="empty-row"><td colspan="5">Tidak ada data</td></tr>';
+    body.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
   } else {
     rows.forEach((r,i)=>{
-      const diffClass = r.diff > 0 ? 'diff-pos' : (r.diff < 0 ? 'diff-neg' : '');
-      const diffText = (r.diff>=0?'+':'') + fmt(r.diff);
+      const tagClass = r.sisi === 'D1' ? 'd1' : 'd2';
+      const tagLabel = r.sisi === 'D1' ? 'Data 1' : 'Data 2';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${i+1}</td>
+        <td><span class="tag ${tagClass}">${tagLabel}</span></td>
         <td>${r.nama}</td>
-        <td class="num">${fmt(r.basil1)}</td>
-        <td class="num">${fmt(r.basil2)}</td>
-        <td class="num ${diffClass}">${diffText}</td>
+        <td class="num">${fmt(r.basil)}</td>
       `;
       body.appendChild(tr);
     });
   }
+  const netDiff = onlyD1.length - onlyD2.length;
   document.getElementById('selisihCountLabel').textContent = rows.length + ' nama';
-  document.getElementById('selisihTotal1Cell').textContent = fmt(unpaidTotal1);
-  document.getElementById('selisihTotal2Cell').textContent = fmt(unpaidTotal2);
-  document.getElementById('selisihTotalDiffCell').textContent = (basilDiff>=0?'+':'') + fmt(basilDiff);
+  document.getElementById('selisihCount1').textContent = onlyD1.length;
+  document.getElementById('selisihCount2').textContent = onlyD2.length;
+  document.getElementById('selisihTotalDiffCell').textContent =
+    (netDiff>=0?'+':'') + netDiff + ' nama (' + fmt(totalOnly1) + ' vs ' + fmt(totalOnly2) + ')';
 }
 
 function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2, records1, records2){
@@ -1263,23 +1276,25 @@ function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2, records
 
   // ===== Kesimpulan Analisa =====
   const basilDiff = unpaidTotal2 - unpaidTotal1;
-  const countDiff = unpaid2.length - unpaid1.length;
+  const {onlyD1, onlyD2} = computeOnlySides(byName1, byName2);
+  const countDiff = onlyD1.length - onlyD2.length;
   document.getElementById('anCount1').textContent = unpaid1.length + ' nama';
   document.getElementById('anTotal1').textContent = 'Total Basil: ' + fmt(unpaidTotal1);
   document.getElementById('anCount2').textContent = unpaid2.length + ' nama';
   document.getElementById('anTotal2').textContent = 'Total Basil: ' + fmt(unpaidTotal2);
   document.getElementById('anBasilDiff').textContent = (basilDiff >= 0 ? '+' : '') + fmt(basilDiff);
-  document.getElementById('anCountDiff').textContent = 'Selisih jumlah nama: ' + (countDiff >= 0 ? '+' : '') + countDiff;
+  document.getElementById('anCountDiff').textContent = 'Selisih jumlah nama: ' + (countDiff >= 0 ? '+' : '') + countDiff + ' (' + onlyD1.length + ' hanya di Data 1, ' + onlyD2.length + ' hanya di Data 2)';
 
   const arah = basilDiff > 0 ? 'lebih besar' : (basilDiff < 0 ? 'lebih kecil' : 'sama besar');
   const arahNama = countDiff > 0 ? 'lebih banyak' : (countDiff < 0 ? 'lebih sedikit' : 'sama banyak');
   document.getElementById('anConclusion').innerHTML =
     `Belum Bayar Data 1 tercatat <b>${unpaid1.length} nama</b> dengan total Basil <b>${fmt(unpaidTotal1)}</b>, ` +
     `sedangkan Data 2 tercatat <b>${unpaid2.length} nama</b> dengan total Basil <b>${fmt(unpaidTotal2)}</b>. ` +
-    `Total Basil Data 2 ${arah} dibanding Data 1 dengan selisih <b>${fmt(Math.abs(basilDiff))}</b>, ` +
-    `dan jumlah nama Data 2 ${arahNama} dibanding Data 1 dengan selisih <b>${Math.abs(countDiff)} nama</b>.`;
+    `Total Basil Data 2 ${arah} dibanding Data 1 dengan selisih <b>${fmt(Math.abs(basilDiff))}</b>. ` +
+    `Nama yang hanya ada di Data 1 saja ada <b>${onlyD1.length} nama</b>, sedangkan yang hanya ada di Data 2 saja ada <b>${onlyD2.length} nama</b>, ` +
+    `sehingga Data 1 ${arahNama} dibanding Data 2 dengan selisih <b>${Math.abs(countDiff)} nama</b> &mdash; daftar lengkapnya ada di tabel di bawah ini.`;
 
-  renderSelisihDetail(byName1, byName2, unpaidTotal1, unpaidTotal2, basilDiff);
+  renderSelisihDetail(onlyD1, onlyD2);
 
   const skippedNote = document.getElementById('skippedNote');
   const totalSkipped = (skipped1||0) + (skipped2||0);
