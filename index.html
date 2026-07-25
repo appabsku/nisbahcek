@@ -323,10 +323,15 @@
 
   .unpaid-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:18px;
   }
-  @media (max-width:800px){ .unpaid-grid{grid-template-columns:1fr;} }
+  @media (max-width:1000px){ .unpaid-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:640px){ .unpaid-grid{grid-template-columns:1fr;} }
+  .unpaid-col.highlight{
+    border:1.5px solid var(--biru-terang);
+    background:linear-gradient(180deg, var(--biru-soft), #fff 40%);
+  }
   .unpaid-col .table-scroll{max-height:460px;}
   .unpaid-col{
     background:var(--card);
@@ -626,6 +631,28 @@
             </table>
           </div>
         </div>
+        <div class="unpaid-col highlight">
+          <h3 class="sub-title">Nama Tidak Ditemukan di Sisi Lain<span class="sub-count" id="unpaid3CountLabel"></span></h3>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Nama</th>
+                  <th class="num">Basil</th>
+                </tr>
+              </thead>
+              <tbody id="unpaidBody3"></tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td></td>
+                  <td class="num" id="unpaidTotal3Cell">0</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="analysis-card">
@@ -654,7 +681,7 @@
 
     <footer class="note">
       <span class="cap">Catatan</span>
-      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan &ldquo;Sudah Bayar&rdquo;. Yang tidak ditemukan pasangannya ditampilkan di &ldquo;Belum Bayar&rdquo;; baris dengan Nomor &amp; Nama yang sama pada sisi yang sama digabung menjadi satu baris dengan Basil dijumlahkan. Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
+      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan &ldquo;Sudah Bayar&rdquo;. Yang tidak ditemukan pasangannya ditampilkan di &ldquo;Belum Bayar&rdquo;; baris dengan Nomor &amp; Nama yang sama pada sisi yang sama digabung menjadi satu baris dengan Basil dijumlahkan. Kolom &ldquo;Nama Tidak Ditemukan di Sisi Lain&rdquo; hanya menampilkan nama yang benar-benar tidak ada pasangannya di sisi lain &mdash; jika sebuah nama muncul di Belum Bayar Data 1 maupun Data 2 (meski Nomor berbeda), nama tersebut dianggap sudah cocok secara nama dan tidak dimasukkan ke kolom ini. Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
       <div id="skippedNote" style="margin-top:8px;"></div>
     </footer>
 
@@ -916,6 +943,21 @@ function groupByNomorNama(records, basilKey){
   return Array.from(map.values());
 }
 
+// Gabungkan baris hanya berdasarkan Nama (lintas Nomor), dipakai untuk mencocokkan
+// nama antar sisi Data 1 dan Data 2 pada kolom "Nama Tidak Ditemukan di Sisi Lain"
+function groupByNamaOnly(records, basilKey){
+  const map = new Map();
+  records.forEach(r=>{
+    if(!map.has(r.nama)){
+      const entry = {nama: r.nama};
+      entry[basilKey] = 0;
+      map.set(r.nama, entry);
+    }
+    map.get(r.nama)[basilKey] += r[basilKey];
+  });
+  return map;
+}
+
 const numFmt = new Intl.NumberFormat('id-ID', {maximumFractionDigits:0});
 const fmt = v => numFmt.format(Math.round(v));
 
@@ -989,6 +1031,37 @@ function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2){
 
   document.getElementById('unpaidTotal1Cell').textContent = fmt(unpaidTotal1);
   document.getElementById('unpaidTotal2Cell').textContent = fmt(unpaidTotal2);
+
+  // ===== Kolom 3: Nama yang tidak ditemukan sama sekali di sisi lain =====
+  const byName1 = groupByNamaOnly(unpaid1Raw, 'basil1');
+  const byName2 = groupByNamaOnly(unpaid2Raw, 'basil2');
+  const col3 = [];
+  byName1.forEach((entry, nama)=>{
+    if(!byName2.has(nama)) col3.push({nama, basil: entry.basil1});
+  });
+  byName2.forEach((entry, nama)=>{
+    if(!byName1.has(nama)) col3.push({nama, basil: entry.basil2});
+  });
+
+  const unpaidBody3 = document.getElementById('unpaidBody3');
+  unpaidBody3.innerHTML = '';
+  let unpaidTotal3 = 0;
+  if(col3.length === 0){
+    unpaidBody3.innerHTML = '<tr class="empty-row"><td colspan="3">Tidak ada data</td></tr>';
+  } else {
+    col3.forEach((r, i)=>{
+      unpaidTotal3 += r.basil;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i+1}</td>
+        <td class="name">${r.nama}</td>
+        <td class="num">${fmt(r.basil)}</td>
+      `;
+      unpaidBody3.appendChild(tr);
+    });
+  }
+  document.getElementById('unpaidTotal3Cell').textContent = fmt(unpaidTotal3);
+  document.getElementById('unpaid3CountLabel').textContent = col3.length + ' nama';
 
   document.getElementById('paidCountLabel').textContent = paid.length + ' baris';
   const unpaidTotalCount = unpaid1.length + unpaid2.length;
