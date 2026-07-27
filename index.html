@@ -794,12 +794,20 @@ function renderTable(){
     </tr>
   `).join('');
 
-  const totalBasil1 = filtered.reduce((s,r)=>s + r.basil1, 0);
-  const totalBasil2 = filtered.reduce((s,r)=>s + r.basil2, 0);
-  const totalSelisih = filtered.reduce((s,r)=>s + r.selisih, 0);
+  const noFilterActive = !search && !filter;
+  const off1 = officialTotals[1];
+  const off2 = officialTotals[2];
+  const pakaiResmi = noFilterActive && off1 && off1.basil !== null && off2 && off2.basil !== null;
+
+  const totalBasil1 = pakaiResmi ? off1.basil : filtered.reduce((s,r)=>s + r.basil1, 0);
+  const totalBasil2 = pakaiResmi ? off2.basil : filtered.reduce((s,r)=>s + r.basil2, 0);
+  const totalSelisih = totalBasil2 - totalBasil1;
+  const labelTotal = pakaiResmi
+    ? `TOTAL RESMI PDF (${filtered.length} nasabah)`
+    : `TOTAL (${filtered.length} nasabah)`;
   tfoot.innerHTML = `
     <tr>
-      <td colspan="3">TOTAL (${filtered.length} nasabah)</td>
+      <td colspan="3">${labelTotal}</td>
       <td class="num">Rp ${fmtAngka(totalBasil1)}</td>
       <td class="num">Rp ${fmtAngka(totalBasil2)}</td>
       <td class="num">${totalSelisih>=0?'+':''}Rp ${fmtAngka(totalSelisih)}</td>
