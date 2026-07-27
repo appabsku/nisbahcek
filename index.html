@@ -1,1340 +1,879 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rekonsiliasi Mutasi Pinjaman</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Rekonsiliasi Basil Pinjaman</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --biru-tua:#003D79;
-    --biru:#0060AC;
-    --biru-terang:#00A9E0;
-    --biru-soft:#E8F3FB;
-    --oranye:#F36F21;
-    --oranye-soft:#FDEDE1;
-    --hijau:#1E9E5A;
-    --hijau-soft:#E4F7EC;
-    --merah:#E23B3B;
-    --merah-soft:#FCE7E7;
-    --bg:#F2F5F9;
-    --card:#FFFFFF;
-    --ink:#152436;
-    --ink-soft:#66788D;
-    --line:#E4EAF1;
-    --radius:18px;
-    --radius-sm:12px;
-    --shadow: 0 2px 6px rgba(16,54,94,.05), 0 14px 30px -18px rgba(16,54,94,.28);
+    --biru-tua:#003c71;
+    --biru:#00529c;
+    --biru-terang:#0072ce;
+    --emas:#f2a900;
+    --emas-muda:#ffd166;
+    --abu-bg:#eef1f5;
+    --putih:#ffffff;
+    --teks:#1c2b39;
+    --teks-muted:#6b7b8c;
+    --hijau:#1a8a4a;
+    --merah:#d63447;
+    --garis:#dbe3ea;
+    --radius:10px;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
   body{
-    background:var(--bg);
-    color:var(--ink);
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-    padding:0 0 90px;
-    -webkit-font-smoothing:antialiased;
-    overflow-x:hidden;
-  }
-  .wrap{max-width:1280px;margin:0 auto;padding:0 24px;width:100%;}
-
-  /* ===== App header ===== */
-  header.top{
-    background:linear-gradient(120deg, var(--biru-tua) 0%, var(--biru) 55%, var(--biru-terang) 130%);
-    color:#fff;
-    padding:34px 0 46px;
-    margin-bottom:-26px;
-    border-radius:0 0 32px 32px;
-    position:relative;
-    overflow:hidden;
-  }
-  header.top::before{
-    content:"";
-    position:absolute;
-    right:-60px;top:-90px;
-    width:260px;height:260px;
-    border-radius:50%;
-    background:rgba(255,255,255,.08);
-  }
-  header.top::after{
-    content:"";
-    position:absolute;
-    right:60px;bottom:-110px;
-    width:180px;height:180px;
-    border-radius:50%;
-    background:rgba(255,255,255,.07);
-  }
-  .top-inner{
-    max-width:1280px;margin:0 auto;padding:0 24px;
-    display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-    position:relative;z-index:1;
-  }
-  .title-block{display:flex;align-items:center;gap:16px;}
-  .logo-mark{
-    width:46px;height:46px;border-radius:13px;
-    background:rgba(255,255,255,.16);
-    border:1px solid rgba(255,255,255,.35);
-    display:flex;align-items:center;justify-content:center;
-    flex:none;
-  }
-  .logo-mark span{
-    font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;color:#fff;
-  }
-  h1{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:clamp(21px,2.6vw,26px);
     margin:0;
-    letter-spacing:-.01em;
-    color:#fff;
+    font-family:'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    background:var(--abu-bg);
+    color:var(--teks);
   }
-  .subtitle{
-    font-size:12.5px;
-    color:rgba(255,255,255,.85);
-    margin-top:5px;
-    letter-spacing:.01em;
+  header{
+    background:linear-gradient(135deg, var(--biru-tua) 0%, var(--biru) 60%, var(--biru-terang) 100%);
+    padding:22px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:var(--putih);
+    box-shadow:0 3px 10px rgba(0,0,0,.15);
+    flex-wrap:wrap;
+    gap:10px;
   }
-  .ledger-no{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    letter-spacing:.06em;
-    color:rgba(255,255,255,.8);
-    text-align:right;
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .mark{
+    width:42px;height:42px;border-radius:10px;
+    background:var(--emas);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:var(--biru-tua);font-size:20px;
   }
-  .ledger-no .num{color:#fff;display:block;margin-top:3px;font-size:12.5px;font-weight:600;}
+  .brand h1{font-size:19px; margin:0; letter-spacing:.3px;}
+  .brand span{display:block; font-size:12px; font-weight:400; opacity:.85;}
+  .badge-mode{
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.3);
+    padding:6px 14px;border-radius:20px;font-size:12px;
+  }
 
-  .content-shell{position:relative;z-index:2;}
-
-  /* ===== Upload ===== */
-  .section-label{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:13px;
-    color:var(--biru-tua);
-    margin:0 0 14px;
-    display:flex;align-items:center;gap:8px;
-  }
+  main{max-width:1180px; margin:0 auto; padding:28px 20px 60px;}
 
   .upload-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:18px;
-    margin-bottom:22px;
+    grid-template-columns:1fr 1fr auto;
+    gap:16px;
+    align-items:stretch;
   }
-  @media (max-width:700px){ .upload-grid{grid-template-columns:1fr;} }
+  @media (max-width:860px){ .upload-grid{grid-template-columns:1fr;} }
 
-  .drop{
-    background:var(--card);
-    border:1.5px dashed #C7D6E6;
+  .card{
+    background:var(--putih);
     border-radius:var(--radius);
-    padding:26px 22px;
+    border:1px solid var(--garis);
+    box-shadow:0 1px 3px rgba(20,40,70,.05);
+  }
+  .drop{
+    padding:22px;
+    display:flex; flex-direction:column; gap:10px;
+    position:relative;
+  }
+  .drop .label-periode{
+    font-size:11px; font-weight:700; letter-spacing:.6px; color:var(--biru);
+    text-transform:uppercase;
+  }
+  .drop input[type=text]{
+    border:1px solid var(--garis); border-radius:6px; padding:8px 10px;
+    font-size:14px; color:var(--teks); font-weight:600;
+  }
+  .dropzone{
+    border:2px dashed var(--garis);
+    border-radius:8px;
+    padding:22px 14px;
     text-align:center;
     cursor:pointer;
-    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease, transform .12s ease;
-    position:relative;
-    box-shadow:var(--shadow);
+    transition:.15s;
+    background:#fbfcfe;
   }
-  .drop:hover{transform:translateY(-2px);}
-  .drop:hover, .drop.drag{
-    border-color:var(--biru);
-    background:var(--biru-soft);
+  .dropzone:hover{border-color:var(--biru-terang); background:#f2f8ff;}
+  .dropzone.has-file{border-color:var(--hijau); background:#f2fbf5;}
+  .dropzone .icon{font-size:26px; margin-bottom:6px;}
+  .dropzone .filename{font-size:12.5px; color:var(--teks-muted); margin-top:4px; word-break:break-all;}
+  .dropzone .filename.ok{color:var(--hijau); font-weight:600;}
+  .dropzone input{display:none;}
+  .status-line{font-size:12px; color:var(--teks-muted); min-height:16px;}
+  .official-line{font-size:11.5px; color:var(--biru); min-height:14px; font-weight:600;}
+  .row-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;}
+  .btn-xl{
+    border:1px solid var(--garis); background:#f2fbf5; border-radius:6px;
+    padding:6px 10px; font-size:11.5px; cursor:pointer; color:var(--hijau); font-weight:700;
+    display:none;
   }
-  .drop.filled{
-    border-style:solid;
-    border-color:var(--hijau);
-    background:var(--hijau-soft);
-  }
-  .drop .eyebrow{
-    font-family:'Poppins',sans-serif;
-    font-size:10.5px;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    color:var(--ink-soft);
-    margin-bottom:10px;
-    display:block;
-    font-weight:600;
-  }
-  .drop .fname{
-    font-family:'Poppins',sans-serif;
-    font-size:15.5px;
-    font-weight:600;
-    margin-top:6px;
-    word-break:break-word;
-    color:var(--ink);
-  }
-  .drop.filled .fname{color:var(--hijau);}
-  .drop .hint{
-    font-size:12px;
-    color:var(--ink-soft);
-    margin-top:6px;
-  }
-  .drop input{display:none;}
-  .drop .icon{
-    width:30px;height:30px;margin:0 auto;
-    color:var(--biru);opacity:.85;
-  }
-  .drop.filled .icon{color:var(--hijau);}
+  .btn-xl:hover{background:#e3f6e9;}
 
-  .actions{
-    display:flex;
-    align-items:center;
-    gap:18px;
-    margin-bottom:10px;
-    flex-wrap:wrap;
-  }
-  button#run{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:14px;
-    background:linear-gradient(120deg, var(--biru-tua), var(--biru-terang));
-    color:#fff;
+  .proses-wrap{display:flex; align-items:center; justify-content:center; padding:16px;}
+  .btn-proses{
+    background:linear-gradient(135deg, var(--emas) 0%, var(--emas-muda) 100%);
+    color:var(--biru-tua);
     border:none;
-    padding:14px 30px;
-    border-radius:999px;
+    font-weight:800;
+    font-size:14.5px;
+    padding:16px 26px;
+    border-radius:8px;
     cursor:pointer;
-    transition:transform .12s ease, box-shadow .15s ease, opacity .15s ease;
-    box-shadow:0 10px 22px -10px rgba(0,96,172,.55);
+    box-shadow:0 3px 8px rgba(242,169,0,.35);
+    transition:.15s;
+    white-space:nowrap;
   }
-  button#run:disabled{
-    background:#CBD5E1;
-    box-shadow:none;
-    cursor:not-allowed;
-  }
-  button#run:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 14px 26px -10px rgba(0,96,172,.6);}
-  button#run:not(:disabled):active{transform:scale(.98);}
+  .btn-proses:hover:not(:disabled){transform:translateY(-1px); box-shadow:0 5px 12px rgba(242,169,0,.45);}
+  .btn-proses:disabled{opacity:.45; cursor:not-allowed; box-shadow:none;}
 
-  .status{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--ink-soft);
-    display:flex;
-    align-items:center;
-    gap:9px;
-    min-height:20px;
-  }
-  .spinner{
-    width:13px;height:13px;border-radius:50%;
-    border:2px solid var(--line);
-    border-top-color:var(--biru);
-    animation:spin .7s linear infinite;
-    display:none;
-  }
-  .spinner.on{display:inline-block;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-
-  .error-box{
-    background:var(--merah-soft);
-    border:1px solid var(--merah);
-    color:var(--merah);
-    padding:13px 17px;
-    border-radius:var(--radius-sm);
-    font-size:13.5px;
-    margin-top:16px;
-    display:none;
-  }
-
-  #results{display:none;margin-top:44px;}
-
-  /* ===== Summary ===== */
-  .summary-row{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:18px;
-    margin-bottom:36px;
-  }
-  @media (max-width:700px){ .summary-row{grid-template-columns:1fr;} }
-  .summary-card{
-    background:var(--card);
-    border:1px solid var(--line);
+  .validation-banner{
+    margin-top:22px;
     border-radius:var(--radius);
-    padding:22px 24px;
-    box-shadow:var(--shadow);
-    position:relative;
+    padding:16px 20px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    border:1px solid var(--garis);
+  }
+  .validation-banner.ok{background:#f2fbf5; border-color:#bfe6cd;}
+  .validation-banner.warn{background:#fdecec; border-color:#f3c3c9;}
+  .validation-banner .vicon{font-size:22px; line-height:1;}
+  .validation-banner .vtitle{font-weight:800; font-size:14px; margin-bottom:4px;}
+  .validation-banner.ok .vtitle{color:var(--hijau);}
+  .validation-banner.warn .vtitle{color:var(--merah);}
+  .validation-banner .vdesc{font-size:12.5px; color:var(--teks); line-height:1.5;}
+  .validation-banner table{margin-top:8px; font-size:12px;}
+  .validation-banner td{padding:3px 10px 3px 0; border:none;}
+
+  .summary{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:14px;
+  }
+  @media (max-width:960px){ .summary{grid-template-columns:repeat(2,1fr);} }
+  .stat{
+    background:var(--putih); border-radius:var(--radius); border:1px solid var(--garis);
+    padding:16px 18px; border-top:3px solid var(--biru);
+  }
+  .stat.accent{border-top-color:var(--emas);}
+  .stat.warn{border-top-color:var(--merah);}
+  .stat.ok{border-top-color:var(--hijau);}
+  .stat .k{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--teks-muted); font-weight:700;}
+  .stat .v{font-size:21px; font-weight:800; color:var(--biru-tua); margin-top:6px;}
+  .stat .v.merah{color:var(--merah);}
+  .stat .v.hijau{color:var(--hijau);}
+  .stat .sub{font-size:11.5px; color:var(--teks-muted); margin-top:2px;}
+
+  section.panel{
+    margin-top:22px;
+    background:var(--putih);
+    border-radius:var(--radius);
+    border:1px solid var(--garis);
     overflow:hidden;
   }
-  .summary-card::before{
-    content:"";
-    position:absolute;top:0;left:0;bottom:0;width:5px;
-    background:var(--hijau);
+  .panel-head{
+    padding:16px 20px;
+    border-bottom:1px solid var(--garis);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+    background:#f8fafc;
   }
-  .summary-card.merah::before{background:var(--oranye);}
-  .summary-card .label{
-    font-family:'Poppins',sans-serif;
-    font-size:12px;
-    font-weight:600;
-    color:var(--ink-soft);
+  .panel-head h2{font-size:15px; margin:0; color:var(--biru-tua);}
+  .panel-head .desc{font-size:12px; color:var(--teks-muted); margin-top:2px;}
+  .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .controls input[type=search]{
+    border:1px solid var(--garis); border-radius:6px; padding:7px 10px; font-size:13px; width:210px;
   }
-  .summary-card .big{
-    font-family:'Poppins',sans-serif;
-    font-size:32px;
-    font-weight:700;
-    margin-top:8px;
-    color:var(--biru-tua);
-    line-height:1;
+  .controls select{
+    border:1px solid var(--garis); border-radius:6px; padding:7px 8px; font-size:13px; background:var(--putih);
   }
-  .summary-card.merah .big{color:var(--oranye);}
-  .summary-card .sub{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12px;
-    color:var(--ink-soft);
-    margin-top:9px;
+  .btn-mini{
+    border:1px solid var(--garis); background:var(--putih); border-radius:6px;
+    padding:7px 12px; font-size:12.5px; cursor:pointer; color:var(--biru); font-weight:600;
   }
+  .btn-mini:hover{background:#eef5ff;}
+  .btn-mini.xl{color:var(--hijau); border-color:#bfe6cd; background:#f2fbf5;}
+  .btn-mini.xl:hover{background:#e3f6e9;}
 
-  /* ===== Table sections ===== */
-  section.table-block{margin-bottom:44px;}
-  .table-head{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin-bottom:16px;
-    flex-wrap:wrap;
-  }
-  .pill{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:11.5px;
-    padding:5px 14px;
-    border-radius:999px;
-  }
-  .pill.paid{color:var(--hijau);background:var(--hijau-soft);}
-  .pill.unpaid{color:var(--oranye);background:var(--oranye-soft);}
-  h2.tbl-title{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:19px;
-    margin:0;
-    color:var(--ink);
-  }
-  h3.sub-title{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:14.5px;
-    margin:0 0 11px 0;
-    color:var(--biru-tua);
-  }
-  .tbl-count{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;
-    color:var(--ink-soft);
-    margin-left:auto;
-  }
-
-  .unpaid-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr;
-    gap:16px;
-    min-width:0;
-  }
-  @media (max-width:1000px){ .unpaid-grid{grid-template-columns:1fr 1fr;} }
-  @media (max-width:640px){ .unpaid-grid{grid-template-columns:1fr;} }
-  .unpaid-col.highlight{
-    border:1.5px solid var(--biru-terang);
-    background:linear-gradient(180deg, var(--biru-soft), #fff 40%);
-  }
-  .unpaid-col{
-    min-width:0;
-  }
-  .unpaid-col table{font-size:12px;table-layout:fixed;width:100%;}
-  .unpaid-col thead th{padding:9px 6px;font-size:9px;overflow:hidden;text-overflow:ellipsis;}
-  .unpaid-col tbody td{padding:8px 6px;white-space:normal;word-break:normal;overflow-wrap:break-word;vertical-align:top;}
-  .unpaid-col td.nomor{font-size:10px;white-space:nowrap;}
-  .unpaid-col td.name{line-height:1.4;}
-  .unpaid-col td.num{font-size:11px;white-space:nowrap;}
-  .unpaid-col tbody td:first-child{white-space:nowrap;text-align:center;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:10.5px;}
-  .unpaid-col .table-scroll{max-height:460px;overflow-x:hidden;}
-  .unpaid-col{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:18px 18px 0;
-    box-shadow:var(--shadow);
-  }
-  .unpaid-col .table-scroll{border:none;box-shadow:none;border-radius:0;}
-  .unpaid-col .sub-count{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    color:var(--ink-soft);
-    font-weight:400;
-    margin-left:8px;
-  }
-  /* kolom dalam persen agar total selalu 100% lebar kontainer -> tidak ada scroll horizontal */
-  .unpaid-col table col.c-no{width:9%;}
-  .unpaid-col table col.c-nomor{width:22%;}
-  .unpaid-col table col.c-name{width:46%;}
-  .unpaid-col table col.c-basil{width:23%;}
-  .unpaid-col table.tbl3 col.c-no{width:10%;}
-  .unpaid-col table.tbl3 col.c-name{width:62%;}
-  .unpaid-col table.tbl3 col.c-basil{width:28%;}
-  td.name .name-text{display:inline;}
-
-  .table-scroll{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    overflow:auto;
-    max-height:520px;
-    box-shadow:var(--shadow);
-  }
-  table{
-    width:100%;
-    border-collapse:collapse;
-    font-size:13.5px;
-  }
+  table{width:100%; border-collapse:collapse; font-size:13px;}
   thead th{
-    position:sticky;top:0;
-    background:var(--biru-tua);
-    color:#fff;
-    font-family:'Poppins',sans-serif;
-    font-weight:500;
-    font-size:10.5px;
-    letter-spacing:.05em;
-    text-transform:uppercase;
-    text-align:left;
-    padding:12px 15px;
-    white-space:nowrap;
+    background:var(--biru-tua); color:var(--putih); text-align:left;
+    padding:10px 14px; font-weight:600; position:sticky; top:0; white-space:nowrap;
   }
-  tbody td{
-    padding:10px 15px;
-    border-bottom:1px solid var(--line);
-    white-space:nowrap;
-  }
-  tbody tr:nth-child(even){background:#FAFBFD;}
-  tbody tr:last-child td{border-bottom:none;}
-  tbody tr:hover{background:var(--biru-soft);}
-  td.num, th.num{
-    font-family:'IBM Plex Mono',monospace;
-    text-align:right;
-    font-variant-numeric:tabular-nums;
-  }
-  td.name{font-weight:600;color:var(--ink);}
-  td.name .cnt{
-    font-family:'IBM Plex Mono',monospace;
-    font-weight:400;
-    font-size:11px;
-    color:var(--ink-soft);
-    margin-left:6px;
-    white-space:nowrap;
-  }
-  td.nomor{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);font-size:12px;}
-  #paidBody td, #paidBody th{white-space:normal;}
-  table col.m-no{width:34px;}
-  table col.m-nomor{width:90px;}
-  table col.m-name{width:auto;}
-  table col.m-basil{width:110px;}
-  .empty-row td{
-    text-align:center;
-    color:var(--ink-soft);
-    font-style:italic;
-    padding:26px;
-  }
+  tbody td{padding:9px 14px; border-bottom:1px solid var(--garis); white-space:nowrap;}
+  tbody tr:hover{background:#f5f9ff;}
+  td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  td.nama{white-space:normal; max-width:220px;}
+  .tbl-wrap{max-height:520px; overflow:auto;}
   tfoot td{
-    padding:13px 15px;
-    font-family:'IBM Plex Mono',monospace;
-    font-weight:700;
-    border-top:2px solid var(--biru-tua);
-    background:var(--biru-soft);
-    color:var(--biru-tua);
+    padding:11px 14px; font-weight:800; color:var(--biru-tua);
+    background:#f2f6fb; border-top:2px solid var(--biru); position:sticky; bottom:0;
   }
+  tfoot td.num{text-align:right; font-variant-numeric:tabular-nums;}
 
-  /* ===== Analysis / conclusion card ===== */
-  .analysis-card{
-    background:linear-gradient(135deg, var(--biru-tua), var(--biru) 60%, var(--biru-terang) 130%);
-    border-radius:var(--radius);
-    padding:26px 28px;
-    color:#fff;
-    box-shadow:0 16px 34px -18px rgba(0,61,121,.55);
-    margin-top:24px;
+  .pill{
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700;
   }
-  .analysis-card h3{
-    font-family:'Poppins',sans-serif;
-    font-weight:600;
-    font-size:16.5px;
-    margin:0 0 4px;
-  }
-  .analysis-card .desc{
-    font-size:12.5px;
-    color:rgba(255,255,255,.82);
-    margin-bottom:20px;
-  }
-  .analysis-grid{
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:16px;
-  }
-  @media (max-width:760px){ .analysis-grid{grid-template-columns:1fr 1fr;} }
-  @media (max-width:480px){ .analysis-grid{grid-template-columns:1fr;} }
+  .pill.naik{background:#fdecec; color:var(--merah);}
+  .pill.turun{background:#e7f6ed; color:var(--hijau);}
+  .pill.tetap{background:#eef1f5; color:var(--teks-muted);}
+  .pill.baru{background:#fff6e0; color:#a5720a;}
+  .pill.hilang{background:#eee7fb; color:#6a3fc7;}
+
+  .empty-state{padding:50px 20px; text-align:center; color:var(--teks-muted);}
+  .empty-state .icon{font-size:38px; margin-bottom:10px;}
+
+  footer{text-align:center; padding:22px; font-size:11.5px; color:var(--teks-muted);}
+
+  .analysis-list{padding:18px 20px; display:flex; flex-direction:column; gap:10px;}
   .analysis-item{
-    background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:var(--radius-sm);
-    padding:16px 18px;
+    display:flex; gap:12px; padding:12px 14px; border-radius:8px; background:#f8fafc; border:1px solid var(--garis);
   }
-  .analysis-item .a-label{
-    font-family:'Poppins',sans-serif;
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:.03em;
-    color:rgba(255,255,255,.78);
-    text-transform:uppercase;
+  .analysis-item .num-box{
+    min-width:26px; height:26px; border-radius:6px; background:var(--biru); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
   }
-  .analysis-item .a-value{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:19px;
-    font-weight:600;
-    margin-top:8px;
-    color:#fff;
-  }
-  .analysis-item .a-value.orange{color:#FFD8B8;}
-  .analysis-item .a-note{
-    font-size:11px;
-    color:rgba(255,255,255,.7);
-    margin-top:5px;
-  }
-  .analysis-conclusion{
-    margin-top:18px;
-    padding-top:16px;
-    border-top:1px solid rgba(255,255,255,.2);
-    font-size:13px;
-    line-height:1.7;
-    color:rgba(255,255,255,.94);
-  }
-  .analysis-conclusion b{color:#fff;}
-
-  .selisih-detail{
-    margin-top:20px;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:var(--radius-sm);
-    padding:16px 18px;
-  }
-  .selisih-head{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:10px;flex-wrap:wrap;gap:8px;
-  }
-  .selisih-head h4{
-    font-family:'Poppins',sans-serif;font-weight:600;font-size:13.5px;margin:0;color:#fff;
-  }
-  .selisih-head .selisih-desc{
-    font-size:11.5px;color:rgba(255,255,255,.72);margin-top:3px;
-  }
-  .selisih-count{
-    font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.75);
-  }
-  .selisih-scroll{
-    max-height:360px;overflow:auto;border-radius:10px;
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.12);
-  }
-  .selisih-scroll table{width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse;}
-  .selisih-scroll col.s-no{width:8%;}
-  .selisih-scroll col.s-sisi{width:16%;}
-  .selisih-scroll col.s-name{width:52%;}
-  .selisih-scroll col.s-basil{width:24%;}
-  .selisih-scroll .tag{
-    display:inline-block;font-family:'Poppins',sans-serif;font-weight:600;font-size:10px;
-    padding:3px 9px;border-radius:999px;white-space:nowrap;
-  }
-  .selisih-scroll .tag.d1{background:rgba(0,169,224,.22);color:#BFE9FA;}
-  .selisih-scroll .tag.d2{background:rgba(243,111,33,.22);color:#FFD8B8;}
-  .selisih-scroll thead th{
-    position:sticky;top:0;background:#013A6E;color:#fff;
-    font-family:'Poppins',sans-serif;font-weight:500;font-size:9.5px;
-    letter-spacing:.04em;text-transform:uppercase;
-    padding:9px 10px;white-space:nowrap;text-align:left;
-  }
-  .selisih-scroll thead th.num{text-align:right;}
-  .selisih-scroll tbody td{
-    padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.12);
-    color:#fff;white-space:normal;overflow-wrap:break-word;vertical-align:top;
-  }
-  .selisih-scroll tbody td:first-child{
-    white-space:nowrap;text-align:center;color:rgba(255,255,255,.6);
-    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
-  }
-  .selisih-scroll tbody td.num{
-    font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;
-  }
-  .selisih-scroll tbody tr:nth-child(even){background:rgba(255,255,255,.04);}
-  .selisih-scroll tfoot td{
-    font-family:'IBM Plex Mono',monospace;font-weight:700;padding:10px;
-    border-top:2px solid rgba(255,255,255,.35);
-    background:rgba(255,255,255,.07);color:#fff;
-  }
-  .selisih-scroll td.diff-pos{color:#BFF3D3;}
-  .selisih-scroll td.diff-neg{color:#FFD8B8;}
-
-  footer.note{
-    font-size:12px;
-    color:var(--ink-soft);
-    border-top:1px solid var(--line);
-    padding-top:18px;
-    margin-top:26px;
-    line-height:1.7;
-  }
-  footer.note .cap{
-    font-family:'Poppins',sans-serif;
-    font-size:11px;
-    font-weight:600;
-    color:var(--biru);
-    display:block;
-    margin-bottom:6px;
-  }
+  .analysis-item .txt b{color:var(--biru-tua);}
+  .analysis-item .txt .amt{font-weight:700;}
+  .analysis-item .txt .amt.merah{color:var(--merah);}
+  .analysis-item .txt .amt.hijau{color:var(--hijau);}
 </style>
 </head>
 <body>
 
-<header class="top">
-  <div class="top-inner">
-    <div class="title-block">
-      <div class="logo-mark"><span>AB</span></div>
-      <div>
-        <h1>Rekonsiliasi Mutasi Pinjaman</h1>
-        <div class="subtitle">Unggah dua laporan &mdash; sistem mencocokkan Nomor &amp; Nama secara otomatis</div>
-      </div>
+<header>
+  <div class="brand">
+    <div class="mark">RB</div>
+    <div>
+      <h1>Rekonsiliasi Basil Pinjaman</h1>
+      <span>KSPPS &middot; Pencocokan Laporan Mutasi Harian Antar Periode</span>
     </div>
-    <div class="ledger-no">Referensi Berkas<span class="num" id="todayNo"></span></div>
   </div>
+  <div class="badge-mode">100% Lokal &middot; Diproses di Browser &middot; Export Excel Asli (.xlsx)</div>
 </header>
 
-<div class="wrap content-shell">
+<main>
 
-  <div class="section-label">Sumber Data</div>
   <div class="upload-grid">
-    <label class="drop" id="drop1">
-      <input type="file" id="file1" accept="application/pdf">
-      <span class="eyebrow">Data 1</span>
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-      <div class="fname" id="fname1">Klik atau seret file PDF ke sini</div>
-      <div class="hint">Laporan mutasi periode pertama</div>
-    </label>
-    <label class="drop" id="drop2">
-      <input type="file" id="file2" accept="application/pdf">
-      <span class="eyebrow">Data 2</span>
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-      <div class="fname" id="fname2">Klik atau seret file PDF ke sini</div>
-      <div class="hint">Laporan mutasi periode kedua</div>
-    </label>
-  </div>
-
-  <div class="actions">
-    <button id="run" disabled>Proses &amp; Bandingkan</button>
-    <div class="status"><span class="spinner" id="spin"></span><span id="statusText"></span></div>
-  </div>
-  <div class="error-box" id="errorBox"></div>
-
-  <div id="results">
-
-    <div class="section-label">Ikhtisar</div>
-    <div class="summary-row">
-      <div class="summary-card">
-        <div class="label">Sudah Bayar</div>
-        <div class="big" id="sumPaidCount">0</div>
-        <div class="sub" id="sumPaidTotal">0</div>
-      </div>
-      <div class="summary-card merah">
-        <div class="label">Belum Bayar</div>
-        <div class="big" id="sumUnpaidCount">0</div>
-        <div class="sub" id="sumUnpaidTotal">0</div>
+    <div class="card">
+      <div class="drop">
+        <div class="label-periode">Data Periode 1</div>
+        <input type="text" id="label1" placeholder="Contoh: Juni 2026" value="Juni 2026">
+        <label class="dropzone" id="drop1" for="file1">
+          <div class="icon">📄</div>
+          <div>Klik atau seret file PDF ke sini</div>
+          <div class="filename" id="fname1">Belum ada file dipilih</div>
+        </label>
+        <input type="file" id="file1" accept="application/pdf">
+        <div class="status-line" id="status1"></div>
+        <div class="official-line" id="official1"></div>
+        <div class="row-actions">
+          <a href="#" class="debug-link" id="debugLink1" style="display:none; font-size:11.5px; color:var(--biru);">Lihat teks mentah &amp; diagnosa</a>
+          <button class="btn-xl" id="btnXl1">⬇ Export data mentah ke Excel</button>
+        </div>
       </div>
     </div>
 
-    <section class="table-block">
-      <div class="table-head">
-        <h2 class="tbl-title">Sudah Bayar</h2>
-        <span class="pill paid">match</span>
-        <span class="tbl-count" id="paidCountLabel"></span>
+    <div class="card">
+      <div class="drop">
+        <div class="label-periode">Data Periode 2</div>
+        <input type="text" id="label2" placeholder="Contoh: Juli 2026" value="Juli 2026">
+        <label class="dropzone" id="drop2" for="file2">
+          <div class="icon">📄</div>
+          <div>Klik atau seret file PDF ke sini</div>
+          <div class="filename" id="fname2">Belum ada file dipilih</div>
+        </label>
+        <input type="file" id="file2" accept="application/pdf">
+        <div class="status-line" id="status2"></div>
+        <div class="official-line" id="official2"></div>
+        <div class="row-actions">
+          <a href="#" class="debug-link" id="debugLink2" style="display:none; font-size:11.5px; color:var(--biru);">Lihat teks mentah &amp; diagnosa</a>
+          <button class="btn-xl" id="btnXl2">⬇ Export data mentah ke Excel</button>
+        </div>
       </div>
-      <div class="table-scroll">
+    </div>
+
+    <div class="card proses-wrap">
+      <button class="btn-proses" id="btnProses" disabled>⚙️ Proses &amp; Bandingkan</button>
+    </div>
+  </div>
+
+  <div id="hasilWrap" style="display:none;">
+
+    <div class="summary" id="summaryGrid"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Analisa Penyebab Selisih</h2>
+          <div class="desc">Seluruh nasabah dengan basil turun (selisih minus) dari periode 1 ke periode 2</div>
+        </div>
+      </div>
+      <div class="analysis-list" id="analysisList"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Tabel Pencocokan Data</h2>
+          <div class="desc">Dicocokkan berdasarkan Nomor &amp; Nama nasabah, kolom Basil dijumlahkan per periode</div>
+        </div>
+        <div class="controls">
+          <input type="search" id="searchBox" placeholder="Cari nomor / nama...">
+          <select id="filterStatus">
+            <option value="">Semua status</option>
+            <option value="naik">Basil naik</option>
+            <option value="turun">Basil turun</option>
+            <option value="tetap">Tetap</option>
+            <option value="baru">Baru (hanya P2)</option>
+            <option value="hilang">Hilang (hanya P1)</option>
+          </select>
+          <button class="btn-mini xl" id="btnExportXl">⬇ Export ke Excel (.xlsx)</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
         <table>
-          <colgroup>
-            <col class="m-no"><col class="m-nomor"><col class="m-name"><col class="m-basil"><col class="m-basil">
-          </colgroup>
           <thead>
             <tr>
-              <th>No.</th>
+              <th>No</th>
               <th>Nomor</th>
               <th>Nama</th>
-              <th class="num">Basil Data 1</th>
-              <th class="num">Basil Data 2</th>
+              <th style="text-align:right;" id="thBasil1">Basil P1</th>
+              <th style="text-align:right;" id="thBasil2">Basil P2</th>
+              <th style="text-align:right;">Selisih</th>
+              <th>Status</th>
             </tr>
           </thead>
-          <tbody id="paidBody"></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3">Total Basil</td>
-              <td class="num" id="paidTotal1Cell">0</td>
-              <td class="num" id="paidTotal2Cell">0</td>
-            </tr>
-          </tfoot>
+          <tbody id="tblBody"></tbody>
+          <tfoot id="tblFoot"></tfoot>
         </table>
       </div>
     </section>
 
-    <section class="table-block">
-      <div class="table-head">
-        <h2 class="tbl-title">Belum Bayar</h2>
-        <span class="pill unpaid">tidak match</span>
-        <span class="tbl-count" id="unpaidCountLabel"></span>
-      </div>
-      <div class="unpaid-grid">
-        <div class="unpaid-col">
-          <h3 class="sub-title">Tidak Match &mdash; Data 1<span class="sub-count" id="unpaid1CountLabel"></span></h3>
-          <div class="table-scroll">
-            <table>
-              <colgroup>
-                <col class="c-no"><col class="c-nomor"><col class="c-name"><col class="c-basil">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>Nomor</th>
-                  <th>Nama</th>
-                  <th class="num">Basil D1</th>
-                </tr>
-              </thead>
-              <tbody id="unpaidBody1"></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3">Total</td>
-                  <td class="num" id="unpaidTotal1Cell">0</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-        <div class="unpaid-col">
-          <h3 class="sub-title">Tidak Match &mdash; Data 2<span class="sub-count" id="unpaid2CountLabel"></span></h3>
-          <div class="table-scroll">
-            <table>
-              <colgroup>
-                <col class="c-no"><col class="c-nomor"><col class="c-name"><col class="c-basil">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>Nomor</th>
-                  <th>Nama</th>
-                  <th class="num">Basil D2</th>
-                </tr>
-              </thead>
-              <tbody id="unpaidBody2"></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3">Total</td>
-                  <td class="num" id="unpaidTotal2Cell">0</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-        <div class="unpaid-col highlight">
-          <h3 class="sub-title">Nama Tidak Ditemukan di Sisi Lain<span class="sub-count" id="unpaid3CountLabel"></span></h3>
-          <div class="table-scroll">
-            <table class="tbl3">
-              <colgroup>
-                <col class="c-no"><col class="c-name"><col class="c-basil">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>Nama</th>
-                  <th class="num">Basil</th>
-                </tr>
-              </thead>
-              <tbody id="unpaidBody3"></tbody>
-              <tfoot>
-                <tr>
-                  <td>Total</td>
-                  <td></td>
-                  <td class="num" id="unpaidTotal3Cell">0</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="analysis-card">
-        <h3>Kesimpulan Analisa &mdash; Belum Bayar</h3>
-        <div class="desc">Perbandingan baris tidak match antara Data 1 dan Data 2 (setelah nomor &amp; nama yang sama digabung)</div>
-        <div class="analysis-grid">
-          <div class="analysis-item">
-            <div class="a-label">Total Nama &amp; Basil Data 1</div>
-            <div class="a-value" id="anCount1">0</div>
-            <div class="a-note" id="anTotal1">Total Basil: 0</div>
-          </div>
-          <div class="analysis-item">
-            <div class="a-label">Total Nama &amp; Basil Data 2</div>
-            <div class="a-value" id="anCount2">0</div>
-            <div class="a-note" id="anTotal2">Total Basil: 0</div>
-          </div>
-          <div class="analysis-item">
-            <div class="a-label">Selisih Basil (Data 2 &minus; Data 1)</div>
-            <div class="a-value orange" id="anBasilDiff">0</div>
-            <div class="a-note" id="anCountDiff">Selisih jumlah nama: 0</div>
-          </div>
-        </div>
-
-        <div class="selisih-detail">
-          <div class="selisih-head">
-            <div>
-              <h4>Nama yang Menyebabkan Selisih Jumlah Nama</h4>
-              <div class="selisih-desc">Nama yang hanya muncul di Belum Bayar salah satu sisi saja (tidak ada di sisi lain sama sekali)</div>
-            </div>
-            <span class="selisih-count" id="selisihCountLabel"></span>
-          </div>
-          <div class="selisih-scroll">
-            <table id="selisihTable">
-              <colgroup>
-                <col class="s-no"><col class="s-sisi"><col class="s-name"><col class="s-basil">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>No.</th>
-                  <th>Sisi</th>
-                  <th>Nama</th>
-                  <th class="num">Basil</th>
-                </tr>
-              </thead>
-              <tbody id="selisihBody"></tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="3">Hanya Data 1: <span id="selisihCount1">0</span> nama &middot; Hanya Data 2: <span id="selisihCount2">0</span> nama</td>
-                  <td class="num" id="selisihTotalDiffCell">0</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <div class="analysis-conclusion" id="anConclusion"></div>
-      </div>
-    </section>
-
-    <footer class="note">
-      <span class="cap">Catatan</span>
-      Pencocokan dilakukan berdasarkan kombinasi kolom Nomor dan Nama yang diekstrak dari kedua dokumen PDF (posisi kolom dibaca dari koordinat asli tabel, bukan urutan angka). Pinjaman yang sama muncul di kedua periode dikategorikan &ldquo;Sudah Bayar&rdquo;. Yang tidak ditemukan pasangannya ditampilkan di &ldquo;Belum Bayar&rdquo;; baris dengan Nomor &amp; Nama yang sama pada sisi yang sama digabung menjadi satu baris dengan Basil dijumlahkan. Kolom &ldquo;Nama Tidak Ditemukan di Sisi Lain&rdquo; berisi nama yang hanya muncul di Data 1 atau Data 2 saja pada baris yang belum match, lalu dicocokkan sekali lagi berdasarkan Nama terhadap SELURUH data input pada sisi lain (baik yang sudah match maupun yang belum): bila nama tersebut ternyata ditemukan di sisi lain, nama itu dikeluarkan dari kolom ini; bila benar-benar tidak ditemukan di sisi lain, nama itu baru dimasukkan. Totalnya dihitung murni dari isi kolom ini sendiri. Semua angka ditampilkan dalam format ribuan tanpa simbol mata uang.
-      <div id="skippedNote" style="margin-top:8px;"></div>
-    </footer>
-
   </div>
 
+  <div class="empty-state" id="emptyState">
+    <div class="icon">🗂️</div>
+    <div>Unggah dua file PDF Laporan Mutasi Harian Pinjaman untuk memulai pencocokan.</div>
+  </div>
+
+</main>
+
+<div id="debugModal" style="display:none; position:fixed; inset:0; background:rgba(15,25,35,.55); z-index:50; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:min(900px,92vw); max-height:82vh; border-radius:10px; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="padding:14px 18px; border-bottom:1px solid var(--garis); display:flex; justify-content:space-between; align-items:center;">
+      <strong style="color:var(--biru-tua);" id="debugTitle">Diagnosa Ekstraksi PDF</strong>
+      <button id="debugClose" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--teks-muted);">&times;</button>
+    </div>
+    <div style="padding:14px 18px; overflow:auto; font-size:12.5px;">
+      <div id="debugSummary" style="margin-bottom:10px; color:var(--teks-muted);"></div>
+      <div style="font-weight:700; margin:10px 0 4px; color:var(--biru-tua);">Baris TOTAL resmi yang terbaca dari PDF:</div>
+      <pre id="debugOfficial" style="background:#f8fafc; border:1px solid var(--garis); border-radius:6px; padding:10px; white-space:pre-wrap; max-height:80px; overflow:auto;"></pre>
+      <div style="font-weight:700; margin:10px 0 4px; color:var(--biru-tua);">Contoh baris yang TIDAK terbaca sebagai data:</div>
+      <pre id="debugUnmatched" style="background:#f8fafc; border:1px solid var(--garis); border-radius:6px; padding:10px; white-space:pre-wrap; max-height:180px; overflow:auto;"></pre>
+      <div style="font-weight:700; margin:10px 0 4px; color:var(--biru-tua);">Seluruh teks mentah hasil ekstraksi (setelah penyaringan header/footer):</div>
+      <pre id="debugRaw" style="background:#f8fafc; border:1px solid var(--garis); border-radius:6px; padding:10px; white-space:pre-wrap; max-height:260px; overflow:auto;"></pre>
+    </div>
+  </div>
 </div>
 
+<footer>Kolom yang dibaca: No, Nomor, Nama, Basil — nominal desimal (,00) diabaikan dan dibulatkan ke satuan penuh. Total dicek ulang otomatis terhadap baris "T O T A L" resmi di tiap PDF. Export tersedia dalam format Excel (.xlsx) asli, bukan CSV, agar angka Rupiah tidak berubah format saat dibuka.</footer>
+
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-document.getElementById('todayNo').textContent = new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'});
+let dataP1 = null, dataP2 = null;
+let matchedRows = [];
+let officialTotals = {1:null, 2:null}; // {pokok, basil}
 
-const state = { f1:null, f2:null };
+const debugData = {1:null, 2:null};
 
-function wireDrop(dropId, inputId, fnameId, key){
-  const drop = document.getElementById(dropId);
-  const input = document.getElementById(inputId);
+// Baris header/footer berulang yang harus disaring supaya tidak mencampuri baris data
+// di sekitar batas halaman (mis. saat dua baris kebetulan punya koordinat Y berdekatan).
+const BOILERPLATE_PATTERNS = [
+  /^KSPPS\./i,
+  /^LAPORAN MUTASI HARIAN/i,
+  /^Mutasi Periode/i,
+  /^No\.\s*Nomor\s*Tanggal/i,
+  /^N\s*a\s*m\s*a\s+Pokok\s+Basil/i,
+  /^Kifarat\s+Ppj\.?\s*Ke\s+Pembiayaan/i,
+  /^_{5,}/,
+];
+
+function isBoilerplate(line){
+  return BOILERPLATE_PATTERNS.some(re => re.test(line.trim()));
+}
+
+function setupDrop(dropId, fileId, fnameId, statusId, debugLinkId, slot, onLoaded){
+  const dz = document.getElementById(dropId);
+  const input = document.getElementById(fileId);
   const fname = document.getElementById(fnameId);
-  input.addEventListener('change', ()=>{
-    if(input.files && input.files[0]){
-      state[key] = input.files[0];
-      fname.textContent = input.files[0].name;
-      drop.classList.add('filled');
-    }
-    checkReady();
+  const status = document.getElementById(statusId);
+  const debugLink = document.getElementById(debugLinkId);
+  const officialLine = document.getElementById('official' + slot);
+  const btnXl = document.getElementById('btnXl' + slot);
+
+  input.addEventListener('change', e=>{
+    if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
   });
-  ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.add('drag');}));
-  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.remove('drag');}));
-  drop.addEventListener('drop', e=>{
-    const f = e.dataTransfer.files[0];
-    if(f && f.type === 'application/pdf'){
-      input.files = e.dataTransfer.files;
-      state[key] = f;
-      fname.textContent = f.name;
-      drop.classList.add('filled');
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='var(--biru-terang)'; });
+  dz.addEventListener('dragleave', e=>{ dz.style.borderColor=''; });
+  dz.addEventListener('drop', e=>{
+    e.preventDefault();
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file){
+    if(file.type !== 'application/pdf'){
+      status.textContent = 'File harus berformat PDF';
+      status.style.color = 'var(--merah)';
+      return;
     }
-    checkReady();
+    fname.textContent = file.name;
+    fname.classList.add('ok');
+    dz.classList.add('has-file');
+    status.textContent = 'Membaca isi PDF...';
+    status.style.color = 'var(--teks-muted)';
+    officialLine.textContent = '';
+    officialLine.style.color = 'var(--biru)';
+    btnXl.style.display = 'none';
+
+    extractPdfText(file).then(({cleanText, official})=>{
+      const {rows, unmatched} = parseRows(cleanText);
+      debugData[slot] = {raw: cleanText, unmatched, official, fileName: file.name};
+      officialTotals[slot] = official;
+
+      if(rows.length === 0){
+        status.textContent = '0 baris data terbaca — pola tidak cocok, klik "Lihat teks mentah" untuk diagnosa';
+        status.style.color = 'var(--merah)';
+      } else {
+        status.textContent = rows.length + ' baris data terbaca';
+        status.style.color = 'var(--hijau)';
+      }
+      if(official && official.basil !== null){
+        officialLine.textContent = '✓ Total Basil resmi di PDF: Rp ' + fmtAngka(official.basil);
+      } else {
+        officialLine.textContent = '⚠ Baris TOTAL resmi tidak ditemukan di PDF ini — hasil tidak bisa divalidasi otomatis';
+        officialLine.style.color = 'var(--merah)';
+      }
+      debugLink.style.display = 'inline-block';
+      if(rows.length > 0){
+        btnXl.style.display = 'inline-block';
+      }
+      onLoaded(rows);
+      checkReady();
+    }).catch(err=>{
+      status.textContent = 'Gagal membaca PDF: ' + err.message;
+      status.style.color = 'var(--merah)';
+    });
+  }
+
+  debugLink.addEventListener('click', e=>{
+    e.preventDefault();
+    const d = debugData[slot];
+    if(!d) return;
+    document.getElementById('debugTitle').textContent = 'Diagnosa Ekstraksi PDF — ' + (slot===1? document.getElementById('label1').value : document.getElementById('label2').value);
+    document.getElementById('debugSummary').textContent = 'Total baris teks (setelah penyaringan): ' + d.raw.split('\n').length + ' | Baris tidak cocok pola: ' + d.unmatched.length;
+    document.getElementById('debugOfficial').textContent = d.official && d.official.basil !== null
+      ? ('Pokok: Rp ' + fmtAngka(d.official.pokok) + '   |   Basil: Rp ' + fmtAngka(d.official.basil))
+      : '(tidak ditemukan)';
+    document.getElementById('debugUnmatched').textContent = d.unmatched.slice(0,40).join('\n') || '(semua baris cocok / tidak ada sisa)';
+    document.getElementById('debugRaw').textContent = d.raw;
+    document.getElementById('debugModal').style.display = 'flex';
+  });
+
+  btnXl.addEventListener('click', ()=>{
+    const rows = slot === 1 ? dataP1 : dataP2;
+    const off = officialTotals[slot];
+    const label = document.getElementById('label' + slot).value || ('Periode' + slot);
+    exportRawToExcel(rows, off, label, debugData[slot] ? debugData[slot].fileName : ('periode' + slot));
   });
 }
-wireDrop('drop1','file1','fname1','f1');
-wireDrop('drop2','file2','fname2','f2');
+document.getElementById('debugClose').addEventListener('click', ()=>{
+  document.getElementById('debugModal').style.display = 'none';
+});
+document.getElementById('debugModal').addEventListener('click', e=>{
+  if(e.target.id === 'debugModal') e.target.style.display = 'none';
+});
 
-function checkReady(){
-  document.getElementById('run').disabled = !(state.f1 && state.f2);
-}
-
-function setStatus(text, spinning){
-  document.getElementById('statusText').textContent = text || '';
-  document.getElementById('spin').classList.toggle('on', !!spinning);
-}
-function showError(msg){
-  const box = document.getElementById('errorBox');
-  box.textContent = msg;
-  box.style.display = msg ? 'block' : 'none';
-}
-
-async function extractRows(file){
+async function extractPdfText(file){
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-  let rows = [];
+  let rawLines = [];
+  const TOL = 2.5; // toleransi perbedaan koordinat Y dianggap satu baris
+
   for(let p=1; p<=pdf.numPages; p++){
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
-    const items = content.items
-      .map(it => ({str: it.str.trim(), x: it.transform[4], y: it.transform[5]}))
-      .filter(it => it.str.length>0);
 
-    const buckets = [];
+    const items = content.items
+      .filter(it => it.str !== undefined)
+      .map(it => ({x: it.transform[4], y: it.transform[5], str: it.str}));
+
+    items.sort((a,b) => (b.y - a.y) || (a.x - b.x));
+
+    const lines = [];
+    let current = [];
+    let lastY = null;
     items.forEach(it=>{
-      let bucket = buckets.find(b => Math.abs(b.y - it.y) <= 2.2);
-      if(!bucket){ bucket = {y: it.y, items: []}; buckets.push(bucket); }
-      bucket.items.push(it);
+      if(lastY === null || Math.abs(it.y - lastY) <= TOL){
+        current.push(it);
+      } else {
+        lines.push(current);
+        current = [it];
+      }
+      lastY = it.y;
     });
-    buckets.sort((a,b)=> b.y - a.y);
-    buckets.forEach(b=>{
-      b.items.sort((a,c)=> a.x - c.x);
-      rows.push({
-        items: b.items,
-        text: b.items.map(i=>i.str).join(' ').replace(/\s+/g,' ').trim()
-      });
+    if(current.length) lines.push(current);
+
+    lines.forEach(lineItems=>{
+      lineItems.sort((a,b)=>a.x-b.x);
+      let str = lineItems.map(t=>t.str).join(' ');
+      str = str.replace(/[ \t]+/g,' ').trim();
+      rawLines.push(str);
     });
   }
-  return rows.slice(0, 10000);
-}
 
-function detectColumns(rows){
-  const cols = { pokok: [], basil: [], kifarat: [], pembiayaan: [] };
-  rows.forEach(row=>{
-    row.items.forEach(it=>{
-      if(it.str === 'Pokok') cols.pokok.push(it.x);
-      else if(it.str === 'Basil') cols.basil.push(it.x);
-      else if(it.str === 'Kifarat') cols.kifarat.push(it.x);
-      else if(it.str === 'Pembiayaan') cols.pembiayaan.push(it.x);
-    });
+  // perbaiki spasi yang tersisip di tengah angka/tanggal sebelum penyaringan
+  rawLines = rawLines.map(line=>{
+    let s = line;
+    let prev;
+    do{ prev = s; s = s.replace(/(\d)\s*-\s*(\d)/g, '$1-$2'); } while(s !== prev);
+    do{ prev = s; s = s.replace(/(\d)\s*([.,])\s*(\d)/g, '$1$2$3'); } while(s !== prev);
+    return s;
   });
-  const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
-  return {
-    pokok: avg(cols.pokok),
-    basil: avg(cols.basil),
-    kifarat: avg(cols.kifarat),
-    pembiayaan: avg(cols.pembiayaan)
-  };
-}
 
-const MONEY_RE = /^\d{1,3}(?:\.\d{3})*,\d{2}$/;
-const INT_RE = /^\d+$/;
-const LINE_RE = /^(\d+)\s+(\d{2}-\d{5})\s+(\d{2}-\d{2}-\d{4})\s+(.+)$/;
-
-function toNum(s){
-  return parseFloat(s.replace(/\./g,'').replace(',', '.')) || 0;
-}
-
-// Normalisasi nama: rapikan spasi ganda & spasi di ujung, tapi tetap
-// menjaga huruf besar/kecil asli dari dokumen agar tampilan konsisten & rapi.
-function normalizeName(s){
-  return s.replace(/\s+/g,' ').trim();
-}
-
-function nearestColumn(x, columnX){
-  let best = null, bestDist = Infinity;
-  Object.keys(columnX).forEach(key=>{
-    const cx = columnX[key];
-    if(cx === null) return;
-    const d = Math.abs(cx - x);
-    if(d < bestDist){ bestDist = d; best = key; }
+  // tangkap baris TOTAL resmi sebelum baris itu ikut disaring
+  let official = {pokok: null, basil: null};
+  const totalRe = /^T\s*O\s*T\s*A\s*L\s+([\d.,]+)\s+([\d.,]+)/i;
+  rawLines.forEach(line=>{
+    const m = line.match(totalRe);
+    if(m){
+      official.pokok = parseAngka(m[1]);
+      official.basil = parseAngka(m[2]);
+    }
   });
-  return best;
+
+  // saring baris header/footer berulang supaya tidak mencampuri baris data di sekitar page-break
+  const cleanLines = rawLines.filter(line => line.length > 0 && !isBoilerplate(line) && !totalRe.test(line));
+
+  return {cleanText: cleanLines.join('\n'), official};
 }
 
-function parseRecords(rows, columnX){
-  const records = [];
-  let skipped = 0;
-  const haveColumns = columnX.pokok !== null || columnX.basil !== null || columnX.kifarat !== null || columnX.pembiayaan !== null;
+// Parse angka format Indonesia "1.234.567,00" -> integer 1234567 (desimal dibuang)
+function parseAngka(str){
+  const bersih = str.replace(/\./g,'').replace(',', '.');
+  const n = parseFloat(bersih);
+  return Math.round(n);
+}
+function fmtAngka(n){
+  return Math.round(n).toLocaleString('id-ID');
+}
 
-  for(const row of rows){
-    const m = row.text.match(LINE_RE);
-    if(!m) continue;
-    const nomor = m[2];
+function parseRows(text){
+  const rows = [];
+  const unmatched = [];
+  const lines = text.split('\n');
+  const lineRe = /^\s*(\d{1,4})\s+(\d{2}-\d{5})\s+(\d{2}-\d{2}-\d{4})\s+(.+?)\s*$/;
 
-    const restItems = row.items.slice(3);
-    if(restItems.length === 0) continue;
+  lines.forEach(raw=>{
+    if(!raw.trim()) return;
+    const m = raw.match(lineRe);
+    if(!m){
+      if(/\d/.test(raw)) unmatched.push(raw);
+      return;
+    }
+    const [, no, nomor, tanggal, rest] = m;
 
+    const tokens = rest.trim().split(/\s+/);
     let i = 0;
-    const nameTokens = [];
-    while(i < restItems.length && !MONEY_RE.test(restItems[i].str) && !INT_RE.test(restItems[i].str)){
-      nameTokens.push(restItems[i].str);
+    const nameParts = [];
+    const nameTokenRe = /^[A-Z.'()\/,]+$/;
+    while(i < tokens.length && nameTokenRe.test(tokens[i]) && !/^\d/.test(tokens[i])){
+      nameParts.push(tokens[i]);
       i++;
     }
-    const nama = normalizeName(nameTokens.join(' '));
-    if(!nama) continue;
-    const valueItems = restItems.slice(i);
+    if(nameParts.length === 0) return;
+    const nama = nameParts.join(' ');
 
-    let pokok=0, basil=0, kifarat=0, pembiayaan=0, ke=null;
+    const numTokens = tokens.slice(i);
+    const amountTokens = numTokens.filter(t=>/,\d{2}$/.test(t));
+    const keTokens = numTokens.filter(t=>/^\d+$/.test(t));
 
-    // ambil nilai "Ke" (nomor angsuran) dari token integer, di kedua metode
-    valueItems.forEach(it=>{
-      if(INT_RE.test(it.str) && !MONEY_RE.test(it.str)){
-        ke = parseInt(it.str, 10);
-      }
-    });
-
-    if(haveColumns){
-      valueItems.forEach(it=>{
-        if(MONEY_RE.test(it.str)){
-          const col = nearestColumn(it.x, columnX);
-          const val = toNum(it.str);
-          if(col === 'pokok') pokok = val;
-          else if(col === 'basil') basil = val;
-          else if(col === 'kifarat') kifarat = val;
-          else if(col === 'pembiayaan') pembiayaan = val;
-        }
-      });
+    let basil = 0;
+    let pokok = 0;
+    if(keTokens.length > 0 && amountTokens.length >= 1){
+      // baris mutasi normal: elemen terakhir amountTokens = Pembiayaan (selalu 0,00)
+      const meaningful = amountTokens.slice(0, -1);
+      if(meaningful.length >= 1) pokok = parseAngka(meaningful[0]);
+      if(meaningful.length >= 2) basil = parseAngka(meaningful[1]);
+    } else if(amountTokens.length >= 1){
+      // baris pencairan baru: hanya Pokok, tanpa Basil
+      pokok = parseAngka(amountTokens[0]);
+      basil = 0;
     } else {
-      const moneyTokens = valueItems.map(it=>it.str);
-      if(moneyTokens.length >= 2 &&
-         MONEY_RE.test(moneyTokens[moneyTokens.length-1]) &&
-         INT_RE.test(moneyTokens[moneyTokens.length-2])){
-        pembiayaan = toNum(moneyTokens[moneyTokens.length-1]);
-        const moneyPart = moneyTokens.slice(0, moneyTokens.length-2).filter(t=>MONEY_RE.test(t));
-        if(moneyPart[0]!==undefined) pokok = toNum(moneyPart[0]);
-        if(moneyPart[1]!==undefined) basil = toNum(moneyPart[1]);
-        if(moneyPart[2]!==undefined) kifarat = toNum(moneyPart[2]);
-      } else {
-        const moneyPart = moneyTokens.filter(t=>MONEY_RE.test(t));
-        if(moneyPart[0]!==undefined) pokok = toNum(moneyPart[0]);
-        if(moneyPart[1]!==undefined) basil = toNum(moneyPart[1]);
-      }
+      return;
     }
 
-    // lewati baris yang hanya berisi nilai Pembiayaan (Pokok, Basil, Kifarat, Ke semuanya kosong/0)
-    // -> ini bukan mutasi angsuran, jadi tidak dimasukkan ke Sudah Bayar maupun Belum Bayar
-    if(pokok === 0 && basil === 0 && kifarat === 0 && ke === null && pembiayaan > 0){
-      skipped++;
-      continue;
-    }
-
-    records.push({nomor, nama, pokok, basil, kifarat, pembiayaan, ke});
-  }
-  return {records, skipped};
-}
-
-async function extractRecords(file){
-  const rows = await extractRows(file);
-  const columnX = detectColumns(rows);
-  return parseRecords(rows, columnX);
-}
-
-function reconcile(records1, records2){
-  const pool2 = records2.map(r => ({...r, used:false}));
-  const idx2 = new Map();
-  pool2.forEach((r, i)=>{
-    const key = r.nomor + '|' + r.nama;
-    if(!idx2.has(key)) idx2.set(key, []);
-    idx2.get(key).push(i);
+    rows.push({no: parseInt(no,10), nomor, tanggal, nama, pokok, basil});
   });
-
-  const paid = [];
-  const unpaid1 = [];
-
-  records1.forEach(r1=>{
-    const key = r1.nomor + '|' + r1.nama;
-    const bucket = idx2.get(key);
-    let matchIdx = -1;
-    if(bucket){
-      for(const i of bucket){ if(!pool2[i].used){ matchIdx = i; break; } }
-    }
-    if(matchIdx >= 0){
-      pool2[matchIdx].used = true;
-      paid.push({
-        nomor: r1.nomor,
-        nama: r1.nama,
-        basil1: r1.basil,
-        basil2: pool2[matchIdx].basil
-      });
-    } else {
-      unpaid1.push({
-        nomor: r1.nomor,
-        nama: r1.nama,
-        basil1: r1.basil
-      });
-    }
-  });
-
-  const unpaid2 = pool2
-    .filter(r => !r.used)
-    .map(r => ({ nomor: r.nomor, nama: r.nama, basil2: r.basil }));
-
-  return {paid, unpaid1, unpaid2};
+  return {rows, unmatched};
 }
 
-// Gabungkan baris dengan Nomor & Nama yang sama, jumlahkan Basil-nya
-function groupByNomorNama(records, basilKey){
+function checkReady(){
+  document.getElementById('btnProses').disabled = !(dataP1 && dataP2);
+}
+
+setupDrop('drop1','file1','fname1','status1','debugLink1', 1, rows=>{ dataP1 = rows; });
+setupDrop('drop2','file2','fname2','status2','debugLink2', 2, rows=>{ dataP2 = rows; });
+
+document.getElementById('btnProses').addEventListener('click', ()=>{
+  const agg1 = aggregate(dataP1);
+  const agg2 = aggregate(dataP2);
+  matchedRows = buildComparison(agg1, agg2);
+  renderAll();
+});
+
+function aggregate(rows){
   const map = new Map();
-  records.forEach(r=>{
-    const key = r.nomor + '|' + r.nama;
-    if(!map.has(key)){
-      const entry = {nomor: r.nomor, nama: r.nama, count: 0};
-      entry[basilKey] = 0;
-      map.set(key, entry);
-    }
-    const entry = map.get(key);
-    entry[basilKey] += r[basilKey];
-    entry.count += 1;
-  });
-  return Array.from(map.values());
-}
-
-// Gabungkan baris hanya berdasarkan Nama (lintas Nomor), dipakai untuk mencocokkan
-// nama antar sisi Data 1 dan Data 2 pada kolom "Nama Tidak Ditemukan di Sisi Lain"
-function groupByNamaOnly(records, basilKey){
-  const map = new Map();
-  records.forEach(r=>{
-    if(!map.has(r.nama)){
-      const entry = {nama: r.nama};
-      entry[basilKey] = 0;
-      map.set(r.nama, entry);
-    }
-    map.get(r.nama)[basilKey] += r[basilKey];
+  rows.forEach(r=>{
+    const key = r.nomor + '||' + r.nama;
+    if(!map.has(key)) map.set(key, {nomor:r.nomor, nama:r.nama, basil:0, pokok:0, jumlahBaris:0});
+    const e = map.get(key);
+    e.basil += r.basil;
+    e.pokok += r.pokok;
+    e.jumlahBaris += 1;
   });
   return map;
 }
 
-const numFmt = new Intl.NumberFormat('id-ID', {maximumFractionDigits:0});
-const fmt = v => numFmt.format(Math.round(v));
+function buildComparison(agg1, agg2){
+  const keys = new Set([...agg1.keys(), ...agg2.keys()]);
+  const out = [];
+  keys.forEach(key=>{
+    const a = agg1.get(key);
+    const b = agg2.get(key);
+    const nomor = (a || b).nomor;
+    const nama = (a || b).nama;
+    const basil1 = a ? a.basil : 0;
+    const basil2 = b ? b.basil : 0;
+    const selisih = basil2 - basil1;
 
-// Nama yang hanya muncul di Belum Bayar salah satu sisi saja (tidak ditemukan
-// nama yang sama sekalipun di sisi lain). Selisih jumlah antara kedua daftar
-// ini (Hanya Data 1 - Hanya Data 2) adalah angka "Selisih jumlah nama" yang
-// ditampilkan di kartu Kesimpulan Analisa, jadi daftarnya konsisten dengan angkanya.
-function computeOnlySides(byName1, byName2){
-  const onlyD1 = [];
-  const onlyD2 = [];
-  byName1.forEach((entry, nama)=>{
-    if(!byName2.has(nama)) onlyD1.push({nama, basil: entry.basil1, sisi:'D1'});
+    let status;
+    if(!a) status = 'baru';
+    else if(!b) status = 'hilang';
+    else if(selisih > 0) status = 'naik';
+    else if(selisih < 0) status = 'turun';
+    else status = 'tetap';
+
+    out.push({nomor, nama, basil1, basil2, selisih, status});
   });
-  byName2.forEach((entry, nama)=>{
-    if(!byName1.has(nama)) onlyD2.push({nama, basil: entry.basil2, sisi:'D2'});
-  });
-  return {onlyD1, onlyD2};
+  out.sort((x,y)=> Math.abs(y.selisih) - Math.abs(x.selisih));
+  return out;
 }
 
-function renderSelisihDetail(onlyD1, onlyD2){
-  const rows = [...onlyD1, ...onlyD2].sort((a,b)=> b.basil - a.basil);
-  const totalOnly1 = onlyD1.reduce((s,r)=> s + r.basil, 0);
-  const totalOnly2 = onlyD2.reduce((s,r)=> s + r.basil, 0);
+function renderAll(){
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('hasilWrap').style.display = 'block';
 
-  const body = document.getElementById('selisihBody');
-  body.innerHTML = '';
-  if(rows.length === 0){
-    body.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
-  } else {
-    rows.forEach((r,i)=>{
-      const tagClass = r.sisi === 'D1' ? 'd1' : 'd2';
-      const tagLabel = r.sisi === 'D1' ? 'Data 1' : 'Data 2';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td><span class="tag ${tagClass}">${tagLabel}</span></td>
-        <td>${r.nama}</td>
-        <td class="num">${fmt(r.basil)}</td>
-      `;
-      body.appendChild(tr);
-    });
-  }
-  const netDiff = onlyD1.length - onlyD2.length;
-  document.getElementById('selisihCountLabel').textContent = rows.length + ' nama';
-  document.getElementById('selisihCount1').textContent = onlyD1.length;
-  document.getElementById('selisihCount2').textContent = onlyD2.length;
-  document.getElementById('selisihTotalDiffCell').textContent =
-    (netDiff>=0?'+':'') + netDiff + ' nama (' + fmt(totalOnly1) + ' vs ' + fmt(totalOnly2) + ')';
+  const label1 = document.getElementById('label1').value || 'Periode 1';
+  const label2 = document.getElementById('label2').value || 'Periode 2';
+  document.getElementById('thBasil1').textContent = 'Basil ' + label1;
+  document.getElementById('thBasil2').textContent = 'Basil ' + label2;
+
+  renderSummary(label1, label2);
+  renderAnalysis(label1, label2);
+  renderTable();
 }
 
-function renderResults(paid, unpaid1Raw, unpaid2Raw, skipped1, skipped2, records1, records2){
-  const paidBody = document.getElementById('paidBody');
-  const unpaidBody1 = document.getElementById('unpaidBody1');
-  const unpaidBody2 = document.getElementById('unpaidBody2');
-  paidBody.innerHTML = '';
-  unpaidBody1.innerHTML = '';
-  unpaidBody2.innerHTML = '';
+function renderSummary(label1, label2){
+  // Total yang ditampilkan & dianalisa memakai angka Total Basil resmi yang
+  // tercetak di PDF (baris "T O T A L"), bukan hasil penjumlahan per-baris,
+  // supaya acuannya selalu sama dengan dokumen resmi.
+  const off1 = officialTotals[1];
+  const off2 = officialTotals[2];
+  const total1 = (off1 && off1.basil !== null) ? off1.basil : matchedRows.reduce((s,r)=>s + r.basil1, 0);
+  const total2 = (off2 && off2.basil !== null) ? off2.basil : matchedRows.reduce((s,r)=>s + r.basil2, 0);
+  const selisihTotal = total2 - total1;
+  const jumlahBaru = matchedRows.filter(r=>r.status==='baru').length;
+  const jumlahHilang = matchedRows.filter(r=>r.status==='hilang').length;
+  const jumlahBeda = matchedRows.filter(r=>r.status==='naik' || r.status==='turun').length;
 
-  const unpaid1 = groupByNomorNama(unpaid1Raw, 'basil1');
-  const unpaid2 = groupByNomorNama(unpaid2Raw, 'basil2');
-
-  let paidTotal1 = 0, paidTotal2 = 0;
-  if(paid.length === 0){
-    paidBody.innerHTML = '<tr class="empty-row"><td colspan="5">Tidak ada data yang cocok</td></tr>';
-  } else {
-    paid.forEach((r, i)=>{
-      paidTotal1 += r.basil1;
-      paidTotal2 += r.basil2;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td class="nomor">${r.nomor}</td>
-        <td class="name">${r.nama}</td>
-        <td class="num">${fmt(r.basil1)}</td>
-        <td class="num">${fmt(r.basil2)}</td>
-      `;
-      paidBody.appendChild(tr);
-    });
-  }
-  document.getElementById('paidTotal1Cell').textContent = fmt(paidTotal1);
-  document.getElementById('paidTotal2Cell').textContent = fmt(paidTotal2);
-
-  let unpaidTotal1 = 0;
-  if(unpaid1.length === 0){
-    unpaidBody1.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
-  } else {
-    unpaid1.forEach((r, i)=>{
-      unpaidTotal1 += r.basil1;
-      const cnt = r.count > 1 ? `<span class="cnt">&times;${r.count}</span>` : '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td class="nomor">${r.nomor}</td>
-        <td class="name"><span class="name-text">${r.nama}</span>${cnt}</td>
-        <td class="num">${fmt(r.basil1)}</td>
-      `;
-      unpaidBody1.appendChild(tr);
-    });
-  }
-
-  let unpaidTotal2 = 0;
-  if(unpaid2.length === 0){
-    unpaidBody2.innerHTML = '<tr class="empty-row"><td colspan="4">Tidak ada data</td></tr>';
-  } else {
-    unpaid2.forEach((r, i)=>{
-      unpaidTotal2 += r.basil2;
-      const cnt = r.count > 1 ? `<span class="cnt">&times;${r.count}</span>` : '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td class="nomor">${r.nomor}</td>
-        <td class="name"><span class="name-text">${r.nama}</span>${cnt}</td>
-        <td class="num">${fmt(r.basil2)}</td>
-      `;
-      unpaidBody2.appendChild(tr);
-    });
-  }
-
-  document.getElementById('unpaidTotal1Cell').textContent = fmt(unpaidTotal1);
-  document.getElementById('unpaidTotal2Cell').textContent = fmt(unpaidTotal2);
-
-  // ===== Kolom 3: Nama yang tidak ditemukan sama sekali di sisi lain =====
-  // Tahap 1: kumpulkan kandidat dari baris Belum Bayar yang namanya hanya
-  // muncul di salah satu sisi (Data 1 saja / Data 2 saja) pada daftar belum-match.
-  const byName1 = groupByNamaOnly(unpaid1Raw, 'basil1');
-  const byName2 = groupByNamaOnly(unpaid2Raw, 'basil2');
-
-  // Tahap 2: cocokkan lagi kandidat tersebut berdasarkan Nama terhadap SELURUH
-  // data input sisi lain (Data 1 & Data 2 lengkap, termasuk yang sudah match
-  // di "Sudah Bayar"). Jika nama ditemukan di sana, keluarkan dari kolom ini;
-  // jika benar-benar tidak ditemukan, baru dimasukkan.
-  const allNames1 = new Set(records1.map(r => r.nama));
-  const allNames2 = new Set(records2.map(r => r.nama));
-
-  let col3 = [];
-  byName1.forEach((entry, nama)=>{
-    if(!allNames2.has(nama)) col3.push({nama, basil: entry.basil1});
-  });
-  byName2.forEach((entry, nama)=>{
-    if(!allNames1.has(nama)) col3.push({nama, basil: entry.basil2});
-  });
-
-  const unpaidBody3 = document.getElementById('unpaidBody3');
-  unpaidBody3.innerHTML = '';
-  // Total kolom 3 dihitung murni dari isi kolom 3 setelah penyaringan di atas,
-  // bukan dari total Data 1 maupun total Data 2.
-  let unpaidTotal3 = 0;
-  if(col3.length === 0){
-    unpaidBody3.innerHTML = '<tr class="empty-row"><td colspan="3">Tidak ada data</td></tr>';
-  } else {
-    col3.forEach((r, i)=>{
-      unpaidTotal3 += r.basil;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td class="name"><span class="name-text">${r.nama}</span></td>
-        <td class="num">${fmt(r.basil)}</td>
-      `;
-      unpaidBody3.appendChild(tr);
-    });
-  }
-  document.getElementById('unpaidTotal3Cell').textContent = fmt(unpaidTotal3);
-  document.getElementById('unpaid3CountLabel').textContent = col3.length + ' nama';
-
-  document.getElementById('paidCountLabel').textContent = paid.length + ' baris';
-  const unpaidTotalCount = unpaid1.length + unpaid2.length;
-  document.getElementById('unpaidCountLabel').textContent = unpaidTotalCount + ' baris';
-  document.getElementById('unpaid1CountLabel').textContent = unpaid1.length + ' baris';
-  document.getElementById('unpaid2CountLabel').textContent = unpaid2.length + ' baris';
-
-  document.getElementById('sumPaidCount').textContent = paid.length;
-  document.getElementById('sumPaidTotal').textContent = fmt(paidTotal1) + ' / ' + fmt(paidTotal2) + ' (Data 1 / Data 2)';
-  document.getElementById('sumUnpaidCount').textContent = unpaidTotalCount;
-  document.getElementById('sumUnpaidTotal').textContent = fmt(unpaidTotal1) + ' / ' + fmt(unpaidTotal2) + ' (Data 1 / Data 2)';
-
-  // ===== Kesimpulan Analisa =====
-  const basilDiff = unpaidTotal2 - unpaidTotal1;
-  const {onlyD1, onlyD2} = computeOnlySides(byName1, byName2);
-  const countDiff = onlyD1.length - onlyD2.length;
-  document.getElementById('anCount1').textContent = unpaid1.length + ' nama';
-  document.getElementById('anTotal1').textContent = 'Total Basil: ' + fmt(unpaidTotal1);
-  document.getElementById('anCount2').textContent = unpaid2.length + ' nama';
-  document.getElementById('anTotal2').textContent = 'Total Basil: ' + fmt(unpaidTotal2);
-  document.getElementById('anBasilDiff').textContent = (basilDiff >= 0 ? '+' : '') + fmt(basilDiff);
-  document.getElementById('anCountDiff').textContent = 'Selisih jumlah nama: ' + (countDiff >= 0 ? '+' : '') + countDiff + ' (' + onlyD1.length + ' hanya di Data 1, ' + onlyD2.length + ' hanya di Data 2)';
-
-  const arah = basilDiff > 0 ? 'lebih besar' : (basilDiff < 0 ? 'lebih kecil' : 'sama besar');
-  const arahNama = countDiff > 0 ? 'lebih banyak' : (countDiff < 0 ? 'lebih sedikit' : 'sama banyak');
-  document.getElementById('anConclusion').innerHTML =
-    `Belum Bayar Data 1 tercatat <b>${unpaid1.length} nama</b> dengan total Basil <b>${fmt(unpaidTotal1)}</b>, ` +
-    `sedangkan Data 2 tercatat <b>${unpaid2.length} nama</b> dengan total Basil <b>${fmt(unpaidTotal2)}</b>. ` +
-    `Total Basil Data 2 ${arah} dibanding Data 1 dengan selisih <b>${fmt(Math.abs(basilDiff))}</b>. ` +
-    `Nama yang hanya ada di Data 1 saja ada <b>${onlyD1.length} nama</b>, sedangkan yang hanya ada di Data 2 saja ada <b>${onlyD2.length} nama</b>, ` +
-    `sehingga Data 1 ${arahNama} dibanding Data 2 dengan selisih <b>${Math.abs(countDiff)} nama</b> &mdash; daftar lengkapnya ada di tabel di bawah ini.`;
-
-  renderSelisihDetail(onlyD1, onlyD2);
-
-  const skippedNote = document.getElementById('skippedNote');
-  const totalSkipped = (skipped1||0) + (skipped2||0);
-  if(skippedNote){
-    skippedNote.textContent = totalSkipped > 0
-      ? `${totalSkipped} baris diabaikan (${skipped1||0} dari Data 1, ${skipped2||0} dari Data 2) karena kolom Pokok, Basil, Kifarat, dan Ke kosong — hanya ada nilai Pembiayaan.`
-      : '';
-  }
-
-  document.getElementById('results').style.display = 'block';
+  const grid = document.getElementById('summaryGrid');
+  grid.innerHTML = `
+    <div class="stat">
+      <div class="k">Total Basil ${label1}</div>
+      <div class="v">Rp ${fmtAngka(total1)}</div>
+    </div>
+    <div class="stat">
+      <div class="k">Total Basil ${label2}</div>
+      <div class="v">Rp ${fmtAngka(total2)}</div>
+    </div>
+    <div class="stat ${selisihTotal===0?'':(selisihTotal>0?'warn':'ok')}">
+      <div class="k">Selisih Total</div>
+      <div class="v ${selisihTotal>0?'merah':(selisihTotal<0?'hijau':'')}">${selisihTotal>=0?'+':''}Rp ${fmtAngka(selisihTotal)}</div>
+      <div class="sub">${label2} dibanding ${label1}</div>
+    </div>
+    <div class="stat accent">
+      <div class="k">Data Berubah</div>
+      <div class="v">${jumlahBeda}</div>
+      <div class="sub">nasabah nilai basil berbeda</div>
+    </div>
+    <div class="stat">
+      <div class="k">Baru / Hilang</div>
+      <div class="v">${jumlahBaru} / ${jumlahHilang}</div>
+      <div class="sub">hanya ada di salah satu periode</div>
+    </div>
+  `;
 }
 
-document.getElementById('run').addEventListener('click', async ()=>{
-  showError('');
-  document.getElementById('results').style.display = 'none';
-  const btn = document.getElementById('run');
-  btn.disabled = true;
-  try{
-    setStatus('Membaca dokumen PDF 1...', true);
-    const r1 = await extractRecords(state.f1);
-    setStatus('Membaca dokumen PDF 2...', true);
-    const r2 = await extractRecords(state.f2);
-
-    if(r1.records.length === 0 || r2.records.length === 0){
-      throw new Error('Tidak ditemukan baris data yang dapat dibaca pada salah satu file. Pastikan format PDF sesuai laporan mutasi harian pinjaman.');
-    }
-
-    setStatus('Mencocokkan Nomor, Nama & Basil...', true);
-    const {paid, unpaid1, unpaid2} = reconcile(r1.records, r2.records);
-
-    setStatus('Selesai', false);
-    renderResults(paid, unpaid1, unpaid2, r1.skipped, r2.skipped, r1.records, r2.records);
-  } catch(err){
-    console.error(err);
-    showError('Terjadi kendala saat memproses: ' + err.message);
-    setStatus('', false);
-  } finally {
-    btn.disabled = false;
+function renderAnalysis(label1, label2){
+  const semuaMinus = matchedRows
+    .filter(r=>r.selisih < 0)
+    .sort((x,y)=> x.selisih - y.selisih);
+  const kontributor = semuaMinus.slice(0, 20);
+  const box = document.getElementById('analysisList');
+  if(semuaMinus.length === 0){
+    box.innerHTML = '<div class="empty-state" style="padding:20px;">Tidak ditemukan selisih minus antar kedua periode.</div>';
+    return;
   }
+  const totalMinus = semuaMinus.reduce((s,r)=>s + r.selisih, 0);
+  box.innerHTML = kontributor.map((r,idx)=>{
+    const arah = r.status === 'baru' ? `data baru muncul di ${label2} dengan basil Rp ${fmtAngka(r.basil2)}`
+      : r.status === 'hilang' ? `data ada di ${label1} (Rp ${fmtAngka(r.basil1)}) namun tidak ditemukan di ${label2}`
+      : `basil berubah dari Rp ${fmtAngka(r.basil1)} menjadi Rp ${fmtAngka(r.basil2)}`;
+    const cls = r.selisih > 0 ? 'merah' : 'hijau';
+    return `<div class="analysis-item">
+      <div class="num-box">${idx+1}</div>
+      <div class="txt">
+        <b>${r.nama}</b> (${r.nomor}) — ${arah}.
+        Selisih <span class="amt ${cls}">${r.selisih>=0?'+':''}Rp ${fmtAngka(r.selisih)}</span>
+      </div>
+    </div>`;
+  }).join('') + `
+    <div class="analysis-item" style="background:#fdecec; border-color:#f3c3c9;">
+      <div class="num-box" style="background:var(--merah);">Σ</div>
+      <div class="txt">
+        <b>Total Selisih Minus</b> (${semuaMinus.length} nasabah${semuaMinus.length > 20 ? ', ditampilkan 20 terbesar di atas' : ''}) —
+        <span class="amt merah">Rp ${fmtAngka(totalMinus)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderTable(){
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const filter = document.getElementById('filterStatus').value;
+
+  const filtered = matchedRows.filter(r=>{
+    const matchSearch = !search || r.nomor.toLowerCase().includes(search) || r.nama.toLowerCase().includes(search);
+    const matchFilter = !filter || r.status === filter;
+    return matchSearch && matchFilter;
+  });
+
+  const pillLabel = {naik:'Basil Naik', turun:'Basil Turun', tetap:'Tetap', baru:'Baru', hilang:'Hilang'};
+
+  const tbody = document.getElementById('tblBody');
+  const tfoot = document.getElementById('tblFoot');
+  if(filtered.length === 0){
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--teks-muted); padding:24px;">Tidak ada data yang cocok</td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = filtered.map((r,idx)=>`
+    <tr>
+      <td>${idx+1}</td>
+      <td>${r.nomor}</td>
+      <td class="nama">${r.nama}</td>
+      <td class="num">${r.status==='baru' ? '-' : 'Rp ' + fmtAngka(r.basil1)}</td>
+      <td class="num">${r.status==='hilang' ? '-' : 'Rp ' + fmtAngka(r.basil2)}</td>
+      <td class="num">${r.selisih>=0?'+':''}Rp ${fmtAngka(r.selisih)}</td>
+      <td><span class="pill ${r.status}">${pillLabel[r.status]}</span></td>
+    </tr>
+  `).join('');
+
+  const totalBasil1 = filtered.reduce((s,r)=>s + r.basil1, 0);
+  const totalBasil2 = filtered.reduce((s,r)=>s + r.basil2, 0);
+  const totalSelisih = filtered.reduce((s,r)=>s + r.selisih, 0);
+  tfoot.innerHTML = `
+    <tr>
+      <td colspan="3">TOTAL (${filtered.length} nasabah)</td>
+      <td class="num">Rp ${fmtAngka(totalBasil1)}</td>
+      <td class="num">Rp ${fmtAngka(totalBasil2)}</td>
+      <td class="num">${totalSelisih>=0?'+':''}Rp ${fmtAngka(totalSelisih)}</td>
+      <td></td>
+    </tr>
+  `;
+}
+
+document.getElementById('searchBox').addEventListener('input', renderTable);
+document.getElementById('filterStatus').addEventListener('change', renderTable);
+
+// ===== Export data mentah (per periode, sebelum agregasi) ke Excel asli =====
+// Ini yang mengganti alur "PDF -> baca manual" jadi "PDF -> Excel", supaya
+// hasil ekstraksi pdf.js bisa dicek/diaudit langsung di Excel tanpa masalah
+// format angka atau pemisah kolom seperti pada CSV.
+function exportRawToExcel(rows, official, label, sourceFileName){
+  if(!rows || rows.length === 0) return;
+
+  const aoa = [
+    ['No', 'Nomor', 'Nama', 'Tanggal', 'Pokok', 'Basil']
+  ];
+  rows.forEach(r=>{
+    aoa.push([r.no, r.nomor, r.nama, r.tanggal, r.pokok, r.basil]);
+  });
+
+  const jumlahPokok = rows.reduce((s,r)=>s + r.pokok, 0);
+  const jumlahBasil = rows.reduce((s,r)=>s + r.basil, 0);
+  aoa.push(['', '', '', 'TOTAL (dihitung dari baris)', jumlahPokok, jumlahBasil]);
+
+  if(official && official.basil !== null){
+    aoa.push(['', '', '', 'TOTAL resmi (tercetak di PDF)', official.pokok, official.basil]);
+    aoa.push(['', '', '', 'Selisih vs resmi', official.pokok - jumlahPokok, official.basil - jumlahBasil]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:6},{wch:12},{wch:32},{wch:12},{wch:16},{wch:16}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data Mentah');
+
+  const safeName = (label || 'data').replace(/[^a-zA-Z0-9]+/g,'-');
+  XLSX.writeFile(wb, `data-mentah-${safeName}.xlsx`);
+}
+
+// ===== Export tabel pencocokan (hasil akhir) ke Excel asli =====
+document.getElementById('btnExportXl').addEventListener('click', ()=>{
+  const label1 = document.getElementById('label1').value || 'Periode1';
+  const label2 = document.getElementById('label2').value || 'Periode2';
+
+  const aoa = [
+    ['Nomor', 'Nama', `Basil ${label1}`, `Basil ${label2}`, 'Selisih', 'Status']
+  ];
+  const pillLabel = {naik:'Basil Naik', turun:'Basil Turun', tetap:'Tetap', baru:'Baru', hilang:'Hilang'};
+  matchedRows.forEach(r=>{
+    aoa.push([r.nomor, r.nama, r.basil1, r.basil2, r.selisih, pillLabel[r.status]]);
+  });
+
+  const total1 = matchedRows.reduce((s,r)=>s + r.basil1, 0);
+  const total2 = matchedRows.reduce((s,r)=>s + r.basil2, 0);
+  aoa.push(['', 'TOTAL', total1, total2, total2 - total1, '']);
+
+  const off1 = officialTotals[1], off2 = officialTotals[2];
+  if(off1 && off1.basil !== null && off2 && off2.basil !== null){
+    aoa.push(['', 'TOTAL resmi (dari PDF)', off1.basil, off2.basil, off2.basil - off1.basil, '']);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:12},{wch:32},{wch:18},{wch:18},{wch:16},{wch:14}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekonsiliasi');
+  XLSX.writeFile(wb, 'rekonsiliasi-basil.xlsx');
 });
 </script>
+
 </body>
 </html>
