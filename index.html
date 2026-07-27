@@ -262,7 +262,7 @@
     <div class="card">
       <div class="drop">
         <div class="label-periode">Data Periode 1</div>
-        <input type="text" id="label1" placeholder="Contoh: Juni 2026" value="Juni 2026">
+        <input type="text" id="label1" placeholder="Otomatis terisi dari nama file PDF" value="">
         <label class="dropzone" id="drop1" for="file1">
           <div class="icon">📄</div>
           <div>Klik atau seret file PDF ke sini</div>
@@ -282,7 +282,7 @@
     <div class="card">
       <div class="drop">
         <div class="label-periode">Data Periode 2</div>
-        <input type="text" id="label2" placeholder="Contoh: Juli 2026" value="Juli 2026">
+        <input type="text" id="label2" placeholder="Otomatis terisi dari nama file PDF" value="">
         <label class="dropzone" id="drop2" for="file2">
           <div class="icon">📄</div>
           <div>Klik atau seret file PDF ke sini</div>
@@ -410,6 +410,15 @@ function isBoilerplate(line){
   return BOILERPLATE_PATTERNS.some(re => re.test(line.trim()));
 }
 
+// Ubah nama file PDF jadi label periode yang rapi, mis. "JUNI_2026.pdf" -> "Juni 2026"
+function deriveLabelFromFilename(filename){
+  let base = filename.replace(/\.pdf$/i, '');
+  base = base.replace(/[_\-]+/g, ' ').trim();
+  base = base.replace(/\s+/g, ' ');
+  base = base.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  return base || filename;
+}
+
 function setupDrop(dropId, fileId, fnameId, statusId, debugLinkId, slot, onLoaded){
   const dz = document.getElementById(dropId);
   const input = document.getElementById(fileId);
@@ -443,6 +452,9 @@ function setupDrop(dropId, fileId, fnameId, statusId, debugLinkId, slot, onLoade
     officialLine.textContent = '';
     officialLine.style.color = 'var(--biru)';
     btnXl.style.display = 'none';
+
+    const labelInput = document.getElementById('label' + slot);
+    labelInput.value = deriveLabelFromFilename(file.name);
 
     extractPdfText(file).then(({cleanText, official})=>{
       const {rows, unmatched} = parseRows(cleanText);
