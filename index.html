@@ -739,7 +739,7 @@ function renderAnalysis(label1, label2){
     box.innerHTML = '<div class="empty-state" style="padding:20px;">Tidak ditemukan selisih minus antar kedua periode.</div>';
     return;
   }
-  const totalMinus = semuaMinus.reduce((s,r)=>s + r.selisih, 0);
+  const totalMinus = kontributor.reduce((s,r)=>s + r.selisih, 0);
   box.innerHTML = kontributor.map((r,idx)=>{
     const arah = r.status === 'baru' ? `data baru muncul di ${label2} dengan basil Rp ${fmtAngka(r.basil2)}`
       : r.status === 'hilang' ? `data ada di ${label1} (Rp ${fmtAngka(r.basil1)}) namun tidak ditemukan di ${label2}`
@@ -756,7 +756,7 @@ function renderAnalysis(label1, label2){
     <div class="analysis-item" style="background:#fdecec; border-color:#f3c3c9;">
       <div class="num-box" style="background:var(--merah);">Σ</div>
       <div class="txt">
-        <b>Total Selisih Minus</b> (${semuaMinus.length} nasabah${semuaMinus.length > 20 ? ', ditampilkan 20 terbesar di atas' : ''}) —
+        <b>Total Selisih Minus</b> (${kontributor.length} nasabah${semuaMinus.length > 20 ? ` dari ${semuaMinus.length} total, 20 terbesar ditampilkan` : ''}) —
         <span class="amt merah">Rp ${fmtAngka(totalMinus)}</span>
       </div>
     </div>
