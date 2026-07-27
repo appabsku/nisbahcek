@@ -97,9 +97,11 @@
   .dropzone:hover{border-color:var(--biru-terang); background:#f2f8ff;}
   .dropzone.has-file{border-color:var(--hijau); background:#f2fbf5;}
   .dropzone .icon{font-size:26px; margin-bottom:6px;}
-  .dropzone .filename{font-size:12.5px; color:var(--teks-muted); margin-top:4px; word-break:break-all;}
+  .dropzone .filename{font-size:12.5px; color:var(--teks-muted); margin-top:6px; word-break:break-all;}
   .dropzone .filename.ok{color:var(--hijau); font-weight:600;}
-  .dropzone input{display:none;}
+  .dropzone input, input[type="file"]{display:none;}
+  .drop input[type=text]{margin-bottom:2px;}
+  .ganti-hint{font-size:11px; color:var(--teks-muted); text-align:center; margin-top:2px;}
   .status-line{font-size:12px; color:var(--teks-muted); min-height:16px;}
   .official-line{font-size:11.5px; color:var(--biru); min-height:14px; font-weight:600;}
   .row-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;}
@@ -264,9 +266,10 @@
         <label class="dropzone" id="drop1" for="file1">
           <div class="icon">📄</div>
           <div>Klik atau seret file PDF ke sini</div>
-          <div class="filename" id="fname1">Belum ada file dipilih</div>
+          <div class="filename" id="fname1">Belum ada file</div>
         </label>
         <input type="file" id="file1" accept="application/pdf">
+        <div class="ganti-hint">Klik kotak di atas kapan saja untuk ganti PDF bulan lain</div>
         <div class="status-line" id="status1"></div>
         <div class="official-line" id="official1"></div>
         <div class="row-actions">
@@ -283,9 +286,10 @@
         <label class="dropzone" id="drop2" for="file2">
           <div class="icon">📄</div>
           <div>Klik atau seret file PDF ke sini</div>
-          <div class="filename" id="fname2">Belum ada file dipilih</div>
+          <div class="filename" id="fname2">Belum ada file</div>
         </label>
         <input type="file" id="file2" accept="application/pdf">
+        <div class="ganti-hint">Klik kotak di atas kapan saja untuk ganti PDF bulan lain</div>
         <div class="status-line" id="status2"></div>
         <div class="official-line" id="official2"></div>
         <div class="row-actions">
@@ -449,7 +453,7 @@ function setupDrop(dropId, fileId, fnameId, statusId, debugLinkId, slot, onLoade
         status.textContent = '0 baris data terbaca — pola tidak cocok, klik "Lihat teks mentah" untuk diagnosa';
         status.style.color = 'var(--merah)';
       } else {
-        status.textContent = rows.length + ' baris data terbaca';
+        status.textContent = rows.length + ' baris data terbaca' + (document.getElementById('hasilWrap').style.display !== 'none' ? ' — klik "Proses & Bandingkan" lagi untuk memperbarui hasil' : '');
         status.style.color = 'var(--hijau)';
       }
       if(official && official.basil !== null){
