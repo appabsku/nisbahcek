@@ -38,7 +38,7 @@
     color:var(--putih);
     box-shadow:0 3px 10px rgba(0,0,0,.15);
     flex-wrap:wrap;
-    gap:10px;
+    gap:14px;
   }
   .brand{display:flex; align-items:center; gap:14px;}
   .brand .mark{
@@ -53,6 +53,22 @@
     background:rgba(255,255,255,.12);
     border:1px solid rgba(255,255,255,.3);
     padding:6px 14px;border-radius:20px;font-size:12px;
+  }
+
+  nav.menu{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  }
+  nav.menu a{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.35);
+    color:#fff; text-decoration:none;
+    padding:8px 16px; border-radius:20px; font-size:12.5px; font-weight:600;
+    transition:.15s background,.15s transform;
+  }
+  nav.menu a:hover{background:rgba(255,255,255,.22); transform:translateY(-1px);}
+  nav.menu a.aktif{
+    background:var(--emas); color:var(--biru-tua); border-color:var(--emas);
   }
 
   main{max-width:1180px; margin:0 auto; padding:28px 20px 60px;}
@@ -252,7 +268,10 @@
       <span>KSPPS &middot; Pencocokan Laporan Mutasi Harian Antar Periode</span>
     </div>
   </div>
-  <div class="badge-mode">100% Lokal &middot; Diproses di Browser &middot; Export Excel Asli (.xlsx)</div>
+  <nav class="menu">
+    <a href="https://appabsku.github.io/checker/">🧾 APK CHECKER</a>
+    <a href="#" class="aktif">📊 ANALISA NISBAH</a>
+  </nav>
 </header>
 
 <main>
