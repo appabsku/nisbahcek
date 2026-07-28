@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>APK Checker — KSPPS Artha Bahana Syariah</title>
+<title>Rekonsiliasi Basil Pinjaman</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --biru-tua:#003c71;
@@ -18,331 +20,883 @@
     --hijau:#1a8a4a;
     --merah:#d63447;
     --garis:#dbe3ea;
-    --cyan:#00b8d9; --green:#1a8a4a;
     --radius:10px;
-
-    /* alias supaya kompatibel dengan nama variabel lama di bawah */
-    --ink:var(--teks); --paper:var(--abu-bg); --card:var(--putih); --line:var(--garis);
-    --accent:var(--biru); --accent-dark:var(--biru-tua); --muted:var(--teks-muted);
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; font-family:'Segoe UI',system-ui,Arial,sans-serif; background:var(--paper);
-    color:var(--ink);
+    margin:0;
+    font-family:'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+    background:var(--abu-bg);
+    color:var(--teks);
   }
   header{
-    background:linear-gradient(135deg,var(--biru-tua) 0%, var(--biru) 60%, var(--biru-terang) 100%);
-    color:#fff; padding:28px 20px 40px; text-align:center;
+    background:linear-gradient(135deg, var(--biru-tua) 0%, var(--biru) 60%, var(--biru-terang) 100%);
+    padding:22px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:var(--putih);
     box-shadow:0 3px 10px rgba(0,0,0,.15);
+    flex-wrap:wrap;
+    gap:10px;
   }
-  header .brand-row{
-    display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;
-  }
-  header .mark{
-    width:40px;height:40px;border-radius:10px;
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand .mark{
+    width:42px;height:42px;border-radius:10px;
     background:var(--emas);
     display:flex;align-items:center;justify-content:center;
-    font-weight:800;color:var(--biru-tua);font-size:18px;
+    font-weight:800;color:var(--biru-tua);font-size:20px;
   }
-  header h1{margin:0 0 6px; font-size:26px; letter-spacing:.2px;}
-  header p{margin:0; opacity:.85; font-size:14px;}
-
-  nav.menu{
-    max-width:640px; margin:0 auto; margin-top:14px;
-    display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
-  }
-  nav.menu a{
-    display:inline-flex; align-items:center; gap:6px;
+  .brand h1{font-size:19px; margin:0; letter-spacing:.3px;}
+  .brand span{display:block; font-size:12px; font-weight:400; opacity:.85;}
+  .badge-mode{
     background:rgba(255,255,255,.12);
-    border:1px solid rgba(255,255,255,.35);
-    color:#fff; text-decoration:none;
-    padding:8px 16px; border-radius:20px; font-size:12.5px; font-weight:600;
-    transition:.15s background,.15s transform;
-  }
-  nav.menu a:hover{background:rgba(255,255,255,.22); transform:translateY(-1px);}
-  nav.menu a.aktif{
-    background:var(--emas); color:var(--biru-tua); border-color:var(--emas);
+    border:1px solid rgba(255,255,255,.3);
+    padding:6px 14px;border-radius:20px;font-size:12px;
   }
 
-  main{
-    max-width:640px; margin:-26px auto 60px; padding:0 20px;
+  main{max-width:1180px; margin:0 auto; padding:28px 20px 60px;}
+
+  .upload-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr auto;
+    gap:16px;
+    align-items:stretch;
   }
+  @media (max-width:860px){ .upload-grid{grid-template-columns:1fr;} }
+
   .card{
-    background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:28px; box-shadow:0 10px 30px -18px rgba(10,60,45,.35); margin-bottom:20px;
+    background:var(--putih);
+    border-radius:var(--radius);
+    border:1px solid var(--garis);
+    box-shadow:0 1px 3px rgba(20,40,70,.05);
   }
   .drop{
-    border:2px dashed var(--line); border-radius:12px; padding:30px 20px; text-align:center;
-    cursor:pointer; transition:.15s border-color,.15s background;
+    padding:22px;
+    display:flex; flex-direction:column; gap:10px;
+    position:relative;
   }
-  .drop.drag{border-color:var(--biru-terang); background:#eef6ff;}
-  .drop input{display:none;}
-  .drop .hint{font-size:13px; color:var(--muted); margin-top:6px;}
-  .filename{margin-top:12px; font-size:13.5px; color:var(--accent-dark); font-weight:600;}
-  button{
-    margin-top:20px; width:100%; padding:13px; border:none; border-radius:9px;
-    background:linear-gradient(135deg, var(--emas) 0%, var(--emas-muda) 100%);
-    color:var(--biru-tua); font-size:15px; font-weight:800; cursor:pointer;
-    box-shadow:0 3px 8px rgba(242,169,0,.35);
-    transition:.15s transform,.15s box-shadow;
+  .drop .label-periode{
+    font-size:11px; font-weight:700; letter-spacing:.6px; color:var(--biru);
+    text-transform:uppercase;
   }
-  button:hover:not(:disabled){transform:translateY(-1px); box-shadow:0 5px 12px rgba(242,169,0,.45);}
-  button:disabled{opacity:.45; cursor:default; box-shadow:none; transform:none;}
-  .legend{display:flex; gap:16px; margin-top:16px; font-size:12.5px; color:var(--muted); flex-wrap:wrap;}
-  .swatch{width:12px; height:12px; border-radius:3px; display:inline-block; margin-right:5px; vertical-align:-1px; border:1px solid rgba(0,0,0,.15);}
-  #status{margin-top:16px; font-size:13.5px; white-space:pre-wrap; line-height:1.5;}
-  table{width:100%; border-collapse:collapse; margin-top:14px; font-size:12.5px;}
-  th,td{border:1px solid var(--line); padding:6px 8px; text-align:left;}
-  th{background:#eef5f1;}
-  .config-note{
-    font-size:12px; color:var(--muted); background:#fbf6e8; border:1px solid #ecdca6;
-    border-radius:8px; padding:10px 12px; margin-bottom:18px;
+  .drop input[type=text]{
+    border:1px solid var(--garis); border-radius:6px; padding:8px 10px;
+    font-size:14px; color:var(--teks); font-weight:600;
   }
-  code{background:#eef3f0; padding:1px 5px; border-radius:4px; font-size:11.5px;}
+  .dropzone{
+    border:2px dashed var(--garis);
+    border-radius:8px;
+    padding:22px 14px;
+    text-align:center;
+    cursor:pointer;
+    transition:.15s;
+    background:#fbfcfe;
+  }
+  .dropzone:hover{border-color:var(--biru-terang); background:#f2f8ff;}
+  .dropzone.has-file{border-color:var(--hijau); background:#f2fbf5;}
+  .dropzone .icon{font-size:26px; margin-bottom:6px;}
+  .dropzone .filename{font-size:12.5px; color:var(--teks-muted); margin-top:6px; word-break:break-all;}
+  .dropzone .filename.ok{color:var(--hijau); font-weight:600;}
+  .dropzone input, input[type="file"]{display:none;}
+  .drop input[type=text]{margin-bottom:2px;}
+  .ganti-hint{font-size:11px; color:var(--teks-muted); text-align:center; margin-top:2px;}
+  .status-line{font-size:12px; color:var(--teks-muted); min-height:16px;}
+  .official-line{font-size:11.5px; color:var(--biru); min-height:14px; font-weight:600;}
+  .row-actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;}
+  .btn-xl{
+    border:1px solid var(--garis); background:#f2fbf5; border-radius:6px;
+    padding:6px 10px; font-size:11.5px; cursor:pointer; color:var(--hijau); font-weight:700;
+    display:none;
+  }
+  .btn-xl:hover{background:#e3f6e9;}
 
-  .warn-box{
-    margin-top:18px; border:1px solid #ecc6a6; background:#fdf3ea; border-radius:10px;
-    padding:12px 14px;
+  .proses-wrap{display:flex; align-items:center; justify-content:center; padding:16px;}
+  .btn-proses{
+    background:linear-gradient(135deg, var(--emas) 0%, var(--emas-muda) 100%);
+    color:var(--biru-tua);
+    border:none;
+    font-weight:800;
+    font-size:14.5px;
+    padding:16px 26px;
+    border-radius:8px;
+    cursor:pointer;
+    box-shadow:0 3px 8px rgba(242,169,0,.35);
+    transition:.15s;
+    white-space:nowrap;
   }
-  .warn-box h4{margin:0 0 6px; font-size:13.5px; color:#8a4b12;}
-  .warn-box p{margin:0 0 8px; font-size:12px; color:var(--muted);}
-  .warn-list{list-style:none; margin:0; padding:0; font-size:12.5px;}
-  .warn-list li{
-    padding:7px 0; border-top:1px solid #f1ddc7;
+  .btn-proses:hover:not(:disabled){transform:translateY(-1px); box-shadow:0 5px 12px rgba(242,169,0,.45);}
+  .btn-proses:disabled{opacity:.45; cursor:not-allowed; box-shadow:none;}
+
+  .validation-banner{
+    margin-top:22px;
+    border-radius:var(--radius);
+    padding:16px 20px;
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    border:1px solid var(--garis);
   }
-  .warn-list li:first-child{border-top:none;}
-  .warn-name{font-weight:600; color:var(--ink);}
-  .warn-hint{display:block; margin-top:3px; color:#8a4b12; font-size:11.5px;}
-  .warn-hint.none{color:var(--muted);}
+  .validation-banner.ok{background:#f2fbf5; border-color:#bfe6cd;}
+  .validation-banner.warn{background:#fdecec; border-color:#f3c3c9;}
+  .validation-banner .vicon{font-size:22px; line-height:1;}
+  .validation-banner .vtitle{font-weight:800; font-size:14px; margin-bottom:4px;}
+  .validation-banner.ok .vtitle{color:var(--hijau);}
+  .validation-banner.warn .vtitle{color:var(--merah);}
+  .validation-banner .vdesc{font-size:12.5px; color:var(--teks); line-height:1.5;}
+  .validation-banner table{margin-top:8px; font-size:12px;}
+  .validation-banner td{padding:3px 10px 3px 0; border:none;}
+
+  .summary{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:14px;
+  }
+  @media (max-width:960px){ .summary{grid-template-columns:repeat(2,1fr);} }
+  .stat{
+    background:var(--putih); border-radius:var(--radius); border:1px solid var(--garis);
+    padding:16px 18px; border-top:3px solid var(--biru);
+  }
+  .stat.accent{border-top-color:var(--emas);}
+  .stat.warn{border-top-color:var(--merah);}
+  .stat.ok{border-top-color:var(--hijau);}
+  .stat .k{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--teks-muted); font-weight:700;}
+  .stat .v{font-size:21px; font-weight:800; color:var(--biru-tua); margin-top:6px;}
+  .stat .v.merah{color:var(--merah);}
+  .stat .v.hijau{color:var(--hijau);}
+  .stat .sub{font-size:11.5px; color:var(--teks-muted); margin-top:2px;}
+
+  section.panel{
+    margin-top:22px;
+    background:var(--putih);
+    border-radius:var(--radius);
+    border:1px solid var(--garis);
+    overflow:hidden;
+  }
+  .panel-head{
+    padding:16px 20px;
+    border-bottom:1px solid var(--garis);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+    background:#f8fafc;
+  }
+  .panel-head h2{font-size:15px; margin:0; color:var(--biru-tua);}
+  .panel-head .desc{font-size:12px; color:var(--teks-muted); margin-top:2px;}
+  .controls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .controls input[type=search]{
+    border:1px solid var(--garis); border-radius:6px; padding:7px 10px; font-size:13px; width:210px;
+  }
+  .controls select{
+    border:1px solid var(--garis); border-radius:6px; padding:7px 8px; font-size:13px; background:var(--putih);
+  }
+  .btn-mini{
+    border:1px solid var(--garis); background:var(--putih); border-radius:6px;
+    padding:7px 12px; font-size:12.5px; cursor:pointer; color:var(--biru); font-weight:600;
+  }
+  .btn-mini:hover{background:#eef5ff;}
+  .btn-mini.xl{color:var(--hijau); border-color:#bfe6cd; background:#f2fbf5;}
+  .btn-mini.xl:hover{background:#e3f6e9;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    background:var(--biru-tua); color:var(--putih); text-align:left;
+    padding:10px 14px; font-weight:600; position:sticky; top:0; white-space:nowrap;
+  }
+  tbody td{padding:9px 14px; border-bottom:1px solid var(--garis); white-space:nowrap;}
+  tbody tr:hover{background:#f5f9ff;}
+  td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  td.nama{white-space:normal; max-width:220px;}
+  .tbl-wrap{max-height:520px; overflow:auto;}
+  tfoot td{
+    padding:11px 14px; font-weight:800; color:var(--biru-tua);
+    background:#f2f6fb; border-top:2px solid var(--biru); position:sticky; bottom:0;
+  }
+  tfoot td.num{text-align:right; font-variant-numeric:tabular-nums;}
+
+  .pill{
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700;
+  }
+  .pill.naik{background:#fdecec; color:var(--merah);}
+  .pill.turun{background:#e7f6ed; color:var(--hijau);}
+  .pill.tetap{background:#eef1f5; color:var(--teks-muted);}
+  .pill.baru{background:#fff6e0; color:#a5720a;}
+  .pill.hilang{background:#eee7fb; color:#6a3fc7;}
+
+  .empty-state{padding:50px 20px; text-align:center; color:var(--teks-muted);}
+  .empty-state .icon{font-size:38px; margin-bottom:10px;}
+
+  footer{text-align:center; padding:22px; font-size:11.5px; color:var(--teks-muted);}
+
+  .analysis-list{padding:18px 20px; display:flex; flex-direction:column; gap:10px;}
+  .analysis-item{
+    display:flex; gap:12px; padding:12px 14px; border-radius:8px; background:#f8fafc; border:1px solid var(--garis);
+  }
+  .analysis-item .num-box{
+    min-width:26px; height:26px; border-radius:6px; background:var(--biru); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
+  }
+  .analysis-item .txt b{color:var(--biru-tua);}
+  .analysis-item .txt .amt{font-weight:700;}
+  .analysis-item .txt .amt.merah{color:var(--merah);}
+  .analysis-item .txt .amt.hijau{color:var(--hijau);}
 </style>
 </head>
 <body>
+
 <header>
-  <div class="brand-row">
-    <div class="mark">AB</div>
+  <div class="brand">
+    <div class="mark">RB</div>
     <div>
-      <h1>APK Checker</h1>
-      <p>Pencocokan mutasi harian pinjaman — Artha Bahana Syariah</p>
+      <h1>Rekonsiliasi Basil Pinjaman</h1>
+      <span>KSPPS &middot; Pencocokan Laporan Mutasi Harian Antar Periode</span>
     </div>
   </div>
-  <nav class="menu">
-    <a href="#" class="aktif">APK Checker</a>
-    <a href="https://appabsku.github.io/nisbahcek/">📊 ANALISA NISBAH</a>
-  </nav>
+  <div class="badge-mode">100% Lokal &middot; Diproses di Browser &middot; Export Excel Asli (.xlsx)</div>
 </header>
 
 <main>
-  <div class="card">
-    <div class="config-note" id="configNote">
-      Web app belum dikonfigurasi. Isi <code>WEB_APP_URL</code> di bagian atas file ini
-      dengan URL hasil deploy Apps Script (Deploy → New deployment → Web app).
+
+  <div class="upload-grid">
+    <div class="card">
+      <div class="drop">
+        <div class="label-periode">Data Periode 1</div>
+        <input type="text" id="label1" placeholder="Otomatis terisi dari nama file PDF" value="">
+        <label class="dropzone" id="drop1" for="file1">
+          <div class="icon">📄</div>
+          <div>Klik atau seret file PDF ke sini</div>
+          <div class="filename" id="fname1">Belum ada file</div>
+        </label>
+        <input type="file" id="file1" accept="application/pdf">
+        <div class="ganti-hint">Klik kotak di atas kapan saja untuk ganti PDF bulan lain</div>
+        <div class="status-line" id="status1"></div>
+        <div class="official-line" id="official1"></div>
+        <div class="row-actions">
+          <a href="#" class="debug-link" id="debugLink1" style="display:none; font-size:11.5px; color:var(--biru);">Lihat teks mentah &amp; diagnosa</a>
+          <button class="btn-xl" id="btnXl1">⬇ Export data mentah ke Excel</button>
+        </div>
+      </div>
     </div>
 
-    <label class="drop" id="drop">
-      <input type="file" id="file" accept="application/pdf">
-      <div><strong>Klik atau seret file PDF</strong> ke sini</div>
-      <div class="hint">Laporan Mutasi Harian Pinjaman (.pdf)</div>
-      <div class="filename" id="filename"></div>
-    </label>
-
-    <div class="legend">
-      <span><span class="swatch" style="background:var(--cyan)"></span>Pokok cocok dengan Saldo Awal</span>
-      <span><span class="swatch" style="background:var(--green)"></span>Basil cocok dengan Pot. Basil</span>
+    <div class="card">
+      <div class="drop">
+        <div class="label-periode">Data Periode 2</div>
+        <input type="text" id="label2" placeholder="Otomatis terisi dari nama file PDF" value="">
+        <label class="dropzone" id="drop2" for="file2">
+          <div class="icon">📄</div>
+          <div>Klik atau seret file PDF ke sini</div>
+          <div class="filename" id="fname2">Belum ada file</div>
+        </label>
+        <input type="file" id="file2" accept="application/pdf">
+        <div class="ganti-hint">Klik kotak di atas kapan saja untuk ganti PDF bulan lain</div>
+        <div class="status-line" id="status2"></div>
+        <div class="official-line" id="official2"></div>
+        <div class="row-actions">
+          <a href="#" class="debug-link" id="debugLink2" style="display:none; font-size:11.5px; color:var(--biru);">Lihat teks mentah &amp; diagnosa</a>
+          <button class="btn-xl" id="btnXl2">⬇ Export data mentah ke Excel</button>
+        </div>
+      </div>
     </div>
 
-    <button id="run" disabled>Proses & Cocokkan</button>
-    <div id="status"></div>
+    <div class="card proses-wrap">
+      <button class="btn-proses" id="btnProses" disabled>⚙️ Proses &amp; Bandingkan</button>
+    </div>
   </div>
 
-  <div class="card">
-    <div style="font-size:14.5px; font-weight:600; margin-bottom:4px;">Link Spreadsheet Randublatung (bulan ini)</div>
-    <div class="hint" style="margin-bottom:10px;">
-      Ganti tiap bulan kalau spreadsheet Randublatung-nya pindah ke sheet baru — cukup paste link
-      dari address bar (boleh lengkap dengan <code>#gid=...</code>-nya), lalu klik Simpan.
-      Tidak perlu buka Apps Script atau deploy ulang.
-    </div>
-    <div id="linkKeduaCurrent" style="font-size:12.5px; color:var(--muted); margin-bottom:10px;">Memuat link yang sedang dipakai...</div>
-    <input type="text" id="linkKeduaInput" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=..."
-      style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font-size:13px; box-sizing:border-box;">
-    <button id="saveLinkKedua" style="margin-top:10px;">Simpan Link Bulan Ini</button>
-    <div id="linkKeduaStatus" style="margin-top:10px; font-size:13px;"></div>
+  <div id="hasilWrap" style="display:none;">
+
+    <div class="summary" id="summaryGrid"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Analisa Penyebab Selisih</h2>
+          <div class="desc">Seluruh nasabah dengan basil turun (selisih minus) dari periode 1 ke periode 2</div>
+        </div>
+      </div>
+      <div class="analysis-list" id="analysisList"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Tabel Pencocokan Data</h2>
+          <div class="desc">Dicocokkan berdasarkan Nomor &amp; Nama nasabah, kolom Basil dijumlahkan per periode</div>
+        </div>
+        <div class="controls">
+          <input type="search" id="searchBox" placeholder="Cari nomor / nama...">
+          <select id="filterStatus">
+            <option value="">Semua status</option>
+            <option value="naik">Basil naik</option>
+            <option value="turun">Basil turun</option>
+            <option value="tetap">Tetap</option>
+            <option value="baru">Baru (hanya P2)</option>
+            <option value="hilang">Hilang (hanya P1)</option>
+          </select>
+          <button class="btn-mini xl" id="btnExportXl">⬇ Export ke Excel (.xlsx)</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nomor</th>
+              <th>Nama</th>
+              <th style="text-align:right;" id="thBasil1">Basil P1</th>
+              <th style="text-align:right;" id="thBasil2">Basil P2</th>
+              <th style="text-align:right;">Selisih</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tblBody"></tbody>
+          <tfoot id="tblFoot"></tfoot>
+        </table>
+      </div>
+    </section>
+
   </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="icon">🗂️</div>
+    <div>Unggah dua file PDF Laporan Mutasi Harian Pinjaman untuk memulai pencocokan.</div>
+  </div>
+
 </main>
 
+<div id="debugModal" style="display:none; position:fixed; inset:0; background:rgba(15,25,35,.55); z-index:50; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:min(900px,92vw); max-height:82vh; border-radius:10px; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="padding:14px 18px; border-bottom:1px solid var(--garis); display:flex; justify-content:space-between; align-items:center;">
+      <strong style="color:var(--biru-tua);" id="debugTitle">Diagnosa Ekstraksi PDF</strong>
+      <button id="debugClose" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--teks-muted);">&times;</button>
+    </div>
+    <div style="padding:14px 18px; overflow:auto; font-size:12.5px;">
+      <div id="debugSummary" style="margin-bottom:10px; color:var(--teks-muted);"></div>
+      <div style="font-weight:700; margin:10px 0 4px; color:var(--biru-tua);">Baris TOTAL resmi yang terbaca dari PDF:</div>
+      <pre id="debugOfficial" style="background:#f8fafc; border:1px solid var(--garis); border-radius:6px; padding:10px; white-space:pre-wrap; max-height:80px; overflow:auto;"></pre>
+      <div style="font-weight:700; margin:10px 0 4px; color:var(--biru-tua);">Contoh baris yang TIDAK terbaca sebagai data:</div>
+      <pre id="debugUnmatched" style="background:#f8fafc; border:1px solid var(--garis); border-radius:6px; padding:10px; white-space:pre-wrap; max-height:180px; overflow:auto;"></pre>
+      <div style="font-weight:700; margin:10px 0 4px; color:var(--biru-tua);">Seluruh teks mentah hasil ekstraksi (setelah penyaringan header/footer):</div>
+      <pre id="debugRaw" style="background:#f8fafc; border:1px solid var(--garis); border-radius:6px; padding:10px; white-space:pre-wrap; max-height:260px; overflow:auto;"></pre>
+    </div>
+  </div>
+</div>
+
+<footer>Kolom yang dibaca: No, Nomor, Nama, Basil — nominal desimal (,00) diabaikan dan dibulatkan ke satuan penuh. Total dicek ulang otomatis terhadap baris "T O T A L" resmi di tiap PDF. Export tersedia dalam format Excel (.xlsx) asli, bukan CSV, agar angka Rupiah tidak berubah format saat dibuka.</footer>
+
 <script>
-  // -------------------------------------------------------------------
-  // GANTI dengan URL web app Apps Script hasil deploy, contoh:
-  // https://script.google.com/macros/s/AKfycb.../exec
-  // -------------------------------------------------------------------
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwrUQRrQ0J3YdlxYdq3ECvg5j_Kd4erplvEIMZa6krQAyVF0p5pkVMK5LuOUoTrRLgi/exec";
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const fileInput = document.getElementById('file');
-  const drop = document.getElementById('drop');
-  const runBtn = document.getElementById('run');
-  const statusEl = document.getElementById('status');
-  const filenameEl = document.getElementById('filename');
-  const configNote = document.getElementById('configNote');
-  let selectedFile = null;
+let dataP1 = null, dataP2 = null;
+let matchedRows = [];
+let officialTotals = {1:null, 2:null}; // {pokok, basil}
 
-  if (WEB_APP_URL) configNote.style.display = 'none';
+const debugData = {1:null, 2:null};
 
-  drop.addEventListener('click', () => fileInput.click());
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
-  drop.addEventListener('drop', e => {
-    e.preventDefault(); drop.classList.remove('drag');
-    if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+// Baris header/footer berulang yang harus disaring supaya tidak mencampuri baris data
+// di sekitar batas halaman (mis. saat dua baris kebetulan punya koordinat Y berdekatan).
+const BOILERPLATE_PATTERNS = [
+  /^KSPPS\./i,
+  /^LAPORAN MUTASI HARIAN/i,
+  /^Mutasi Periode/i,
+  /^No\.\s*Nomor\s*Tanggal/i,
+  /^N\s*a\s*m\s*a\s+Pokok\s+Basil/i,
+  /^Kifarat\s+Ppj\.?\s*Ke\s+Pembiayaan/i,
+  /^_{5,}/,
+];
+
+function isBoilerplate(line){
+  return BOILERPLATE_PATTERNS.some(re => re.test(line.trim()));
+}
+
+// Ubah nama file PDF jadi label periode yang rapi, mis. "JUNI_2026.pdf" -> "Juni 2026"
+function deriveLabelFromFilename(filename){
+  let base = filename.replace(/\.pdf$/i, '');
+  base = base.replace(/[_\-]+/g, ' ').trim();
+  base = base.replace(/\s+/g, ' ');
+  base = base.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  return base || filename;
+}
+
+function setupDrop(dropId, fileId, fnameId, statusId, debugLinkId, slot, onLoaded){
+  const dz = document.getElementById(dropId);
+  const input = document.getElementById(fileId);
+  const fname = document.getElementById(fnameId);
+  const status = document.getElementById(statusId);
+  const debugLink = document.getElementById(debugLinkId);
+  const officialLine = document.getElementById('official' + slot);
+  const btnXl = document.getElementById('btnXl' + slot);
+
+  input.addEventListener('change', e=>{
+    if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
   });
-  fileInput.addEventListener('change', e => { if (e.target.files.length) setFile(e.target.files[0]); });
+  dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='var(--biru-terang)'; });
+  dz.addEventListener('dragleave', e=>{ dz.style.borderColor=''; });
+  dz.addEventListener('drop', e=>{
+    e.preventDefault();
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
 
-  function setFile(f) {
-    selectedFile = f;
-    filenameEl.textContent = f.name;
-    runBtn.disabled = false;
-  }
-
-  runBtn.addEventListener('click', async () => {
-    if (!selectedFile) return;
-    if (!WEB_APP_URL) {
-      statusEl.textContent = 'WEB_APP_URL belum diisi. Lihat catatan kuning di atas.';
+  function handleFile(file){
+    if(file.type !== 'application/pdf'){
+      status.textContent = 'File harus berformat PDF';
+      status.style.color = 'var(--merah)';
       return;
     }
-    runBtn.disabled = true;
-    statusEl.textContent = 'Membaca PDF...';
+    fname.textContent = file.name;
+    fname.classList.add('ok');
+    dz.classList.add('has-file');
+    status.textContent = 'Membaca isi PDF...';
+    status.style.color = 'var(--teks-muted)';
+    officialLine.textContent = '';
+    officialLine.style.color = 'var(--biru)';
+    btnXl.style.display = 'none';
 
-    try {
-      const base64 = await fileToBase64(selectedFile);
-      statusEl.textContent = 'Mengirim ke server & mencocokkan spreadsheet...';
+    const labelInput = document.getElementById('label' + slot);
+    labelInput.value = deriveLabelFromFilename(file.name);
 
-      const res = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // hindari CORS preflight
-        body: JSON.stringify({ fileName: selectedFile.name, base64: base64 })
-      });
-      const data = await res.json();
+    extractPdfText(file).then(({cleanText, official})=>{
+      const {rows, unmatched} = parseRows(cleanText);
+      debugData[slot] = {raw: cleanText, unmatched, official, fileName: file.name};
+      officialTotals[slot] = official;
 
-      if (!data.ok) throw new Error(data.error || 'Gagal memproses di server.');
-      renderResult(data);
-    } catch (err) {
-      statusEl.textContent = 'Gagal: ' + err.message;
-    } finally {
-      runBtn.disabled = false;
-    }
-  });
-
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      if(rows.length === 0){
+        status.textContent = '0 baris data terbaca — pola tidak cocok, klik "Lihat teks mentah" untuk diagnosa';
+        status.style.color = 'var(--merah)';
+      } else {
+        status.textContent = rows.length + ' baris data terbaca' + (document.getElementById('hasilWrap').style.display !== 'none' ? ' — klik "Proses & Bandingkan" lagi untuk memperbarui hasil' : '');
+        status.style.color = 'var(--hijau)';
+      }
+      if(official && official.basil !== null){
+        officialLine.textContent = '✓ Total Basil resmi di PDF: Rp ' + fmtAngka(official.basil);
+      } else {
+        officialLine.textContent = '⚠ Baris TOTAL resmi tidak ditemukan di PDF ini — hasil tidak bisa divalidasi otomatis';
+        officialLine.style.color = 'var(--merah)';
+      }
+      debugLink.style.display = 'inline-block';
+      if(rows.length > 0){
+        btnXl.style.display = 'inline-block';
+      }
+      onLoaded(rows);
+      checkReady();
+    }).catch(err=>{
+      status.textContent = 'Gagal membaca PDF: ' + err.message;
+      status.style.color = 'var(--merah)';
     });
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
+  debugLink.addEventListener('click', e=>{
+    e.preventDefault();
+    const d = debugData[slot];
+    if(!d) return;
+    document.getElementById('debugTitle').textContent = 'Diagnosa Ekstraksi PDF — ' + (slot===1? document.getElementById('label1').value : document.getElementById('label2').value);
+    document.getElementById('debugSummary').textContent = 'Total baris teks (setelah penyaringan): ' + d.raw.split('\n').length + ' | Baris tidak cocok pola: ' + d.unmatched.length;
+    document.getElementById('debugOfficial').textContent = d.official && d.official.basil !== null
+      ? ('Pokok: Rp ' + fmtAngka(d.official.pokok) + '   |   Basil: Rp ' + fmtAngka(d.official.basil))
+      : '(tidak ditemukan)';
+    document.getElementById('debugUnmatched').textContent = d.unmatched.slice(0,40).join('\n') || '(semua baris cocok / tidak ada sisa)';
+    document.getElementById('debugRaw').textContent = d.raw;
+    document.getElementById('debugModal').style.display = 'flex';
+  });
 
-  function renderResult(data) {
-    const s = data.summary;
-    let text = 'Selesai.\n' +
-      'Baris terbaca dari PDF: ' + s.pdfRowsRead + '\n' +
-      'Baris cocok di spreadsheet utama: ' + s.mainSheetMatched + '\n' +
-      'Baris cocok di sheet Randublatung: ' + s.secondSheetMatched;
-    statusEl.textContent = text;
+  btnXl.addEventListener('click', ()=>{
+    const rows = slot === 1 ? dataP1 : dataP2;
+    const off = officialTotals[slot];
+    const label = document.getElementById('label' + slot).value || ('Periode' + slot);
+    exportRawToExcel(rows, off, label, debugData[slot] ? debugData[slot].fileName : ('periode' + slot));
+  });
+}
+document.getElementById('debugClose').addEventListener('click', ()=>{
+  document.getElementById('debugModal').style.display = 'none';
+});
+document.getElementById('debugModal').addEventListener('click', e=>{
+  if(e.target.id === 'debugModal') e.target.style.display = 'none';
+});
 
-    if (data.rows && data.rows.length) {
-      let table = '<table><tr><th>Nama</th><th>Baris</th><th>Pokok</th><th>Basil</th></tr>';
-      data.rows.forEach(r => {
-        let viaNote = '';
-        if (r.matchedVia === '2kata') {
-          viaNote = ' <span style="color:#8a4b12; font-weight:600;" title="Dicocokkan lewat 2 kata pertama (nama di PDF kepotong)">(≈2 kata)</span>';
-        } else if (r.matchedVia === '2kata+angka') {
-          viaNote = ' <span style="color:#8a4b12; font-weight:600;" title="2 kata pertama cocok, dan dipastikan lewat Pokok+Basil karena ada beberapa nama mirip">(≈2 kata + angka)</span>';
-        } else if (r.matchedVia === 'prefix') {
-          viaNote = ' <span style="color:#8a4b12; font-weight:600;" title="Nama di sheet diawali persis oleh nama PDF yang kepotong di tengah kata">(≈potongan nama)</span>';
-        } else if (r.matchedVia === 'prefix+angka') {
-          viaNote = ' <span style="color:#8a4b12; font-weight:600;" title="Awalan nama cocok, dan dipastikan lewat Pokok+Basil karena ada beberapa nama mirip">(≈potongan nama + angka)</span>';
-        }
-        table += '<tr><td>' + escapeHtml(r.nama) + viaNote + '</td><td>' + escapeHtml(r.row) + '</td><td>' +
-          (r.pokokMatch ? '✓' : '') + '</td><td>' + (r.basilMatch ? '✓' : '') + '</td></tr>';
-      });
-      table += '</table>';
-      statusEl.insertAdjacentHTML('beforeend', table);
-    }
+async function extractPdfText(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  let rawLines = [];
+  const TOL = 2.5; // toleransi perbedaan koordinat Y dianggap satu baris
 
-    // Nama dari PDF yang sama sekali tidak ketemu di kedua spreadsheet.
-    // Ini bukan error -- cuma penanda supaya baris yang "hilang" dari
-    // laporan di atas tidak diam-diam kelewat tanpa keterangan.
-    if (data.namaTidakKetemu && data.namaTidakKetemu.length) {
-      let box = '<div class="warn-box">' +
-        '<h4>⚠ ' + data.namaTidakKetemu.length + ' nama dari PDF tidak ketemu di spreadsheet mana pun</h4>' +
-        '<p>Biasanya karena nama di PDF kepotong (kolom lebar tetap) sehingga beda persis dari nama lengkap di spreadsheet, atau nasabahnya memang belum ada barisnya.</p>' +
-        '<ul class="warn-list">';
-      data.namaTidakKetemu.forEach(n => {
-        box += '<li><span class="warn-name">' + escapeHtml(n.nama) + '</span>';
-        if (n.kemungkinanTerpotong && n.kemungkinanNamaLengkap.length) {
-          box += '<span class="warn-hint">Kemungkinan nama lengkapnya di spreadsheet: ' +
-            n.kemungkinanNamaLengkap.map(escapeHtml).join(', ') + '</span>';
-        } else {
-          box += '<span class="warn-hint none">Tidak ada nama mirip yang ketemu di spreadsheet — cek manual.</span>';
-        }
-        box += '</li>';
-      });
-      box += '</ul></div>';
-      statusEl.insertAdjacentHTML('beforeend', box);
-    }
-  }
+  for(let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
 
-  // --- Link spreadsheet Randublatung bulan ini (ganti tanpa buka Apps Script) ---
-  const linkKeduaCurrentEl = document.getElementById('linkKeduaCurrent');
-  const linkKeduaInputEl = document.getElementById('linkKeduaInput');
-  const linkKeduaStatusEl = document.getElementById('linkKeduaStatus');
-  const saveLinkKeduaBtn = document.getElementById('saveLinkKedua');
+    const items = content.items
+      .filter(it => it.str !== undefined)
+      .map(it => ({x: it.transform[4], y: it.transform[5], str: it.str}));
 
-  async function callWebApp(payload) {
-    const res = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // hindari CORS preflight
-      body: JSON.stringify(payload)
+    items.sort((a,b) => (b.y - a.y) || (a.x - b.x));
+
+    const lines = [];
+    let current = [];
+    let lastY = null;
+    items.forEach(it=>{
+      if(lastY === null || Math.abs(it.y - lastY) <= TOL){
+        current.push(it);
+      } else {
+        lines.push(current);
+        current = [it];
+      }
+      lastY = it.y;
     });
-    return res.json();
+    if(current.length) lines.push(current);
+
+    lines.forEach(lineItems=>{
+      lineItems.sort((a,b)=>a.x-b.x);
+      let str = lineItems.map(t=>t.str).join(' ');
+      str = str.replace(/[ \t]+/g,' ').trim();
+      rawLines.push(str);
+    });
   }
 
-  async function loadLinkKedua() {
-    if (!WEB_APP_URL) { linkKeduaCurrentEl.textContent = 'WEB_APP_URL belum diisi.'; return; }
-    try {
-      const data = await callWebApp({ action: 'getLinkKedua' });
-      if (!data.ok) throw new Error(data.error || 'Gagal mengambil link.');
-      linkKeduaCurrentEl.innerHTML = 'Sedang dipakai: <a href="' + data.url + '" target="_blank" rel="noopener">' + data.url + '</a>';
-    } catch (err) {
-      linkKeduaCurrentEl.textContent = 'Gagal memuat link saat ini: ' + err.message;
-    }
-  }
+  // perbaiki spasi yang tersisip di tengah angka/tanggal sebelum penyaringan
+  rawLines = rawLines.map(line=>{
+    let s = line;
+    let prev;
+    do{ prev = s; s = s.replace(/(\d)\s*-\s*(\d)/g, '$1-$2'); } while(s !== prev);
+    do{ prev = s; s = s.replace(/(\d)\s*([.,])\s*(\d)/g, '$1$2$3'); } while(s !== prev);
+    return s;
+  });
 
-  saveLinkKeduaBtn.addEventListener('click', async () => {
-    const url = linkKeduaInputEl.value.trim();
-    if (!url) { linkKeduaStatusEl.textContent = 'Paste link spreadsheet-nya dulu.'; return; }
-    if (!WEB_APP_URL) { linkKeduaStatusEl.textContent = 'WEB_APP_URL belum diisi.'; return; }
-
-    saveLinkKeduaBtn.disabled = true;
-    linkKeduaStatusEl.textContent = 'Menyimpan...';
-    try {
-      const data = await callWebApp({ action: 'setLinkKedua', url: url });
-      if (!data.ok) throw new Error(data.error || 'Gagal menyimpan link.');
-      linkKeduaStatusEl.textContent = 'Tersimpan. Mulai sekarang pencocokan pakai spreadsheet ini.';
-      linkKeduaInputEl.value = '';
-      loadLinkKedua();
-    } catch (err) {
-      linkKeduaStatusEl.textContent = 'Gagal: ' + err.message;
-    } finally {
-      saveLinkKeduaBtn.disabled = false;
+  // tangkap baris TOTAL resmi sebelum baris itu ikut disaring
+  let official = {pokok: null, basil: null};
+  const totalRe = /^T\s*O\s*T\s*A\s*L\s+([\d.,]+)\s+([\d.,]+)/i;
+  rawLines.forEach(line=>{
+    const m = line.match(totalRe);
+    if(m){
+      official.pokok = parseAngka(m[1]);
+      official.basil = parseAngka(m[2]);
     }
   });
 
-  loadLinkKedua();
+  // saring baris header/footer berulang supaya tidak mencampuri baris data di sekitar page-break
+  const cleanLines = rawLines.filter(line => line.length > 0 && !isBoilerplate(line) && !totalRe.test(line));
+
+  return {cleanText: cleanLines.join('\n'), official};
+}
+
+// Parse angka format Indonesia "1.234.567,00" -> integer 1234567 (desimal dibuang)
+function parseAngka(str){
+  const bersih = str.replace(/\./g,'').replace(',', '.');
+  const n = parseFloat(bersih);
+  return Math.round(n);
+}
+function fmtAngka(n){
+  return Math.round(n).toLocaleString('id-ID');
+}
+
+function parseRows(text){
+  const rows = [];
+  const unmatched = [];
+  const lines = text.split('\n');
+  const lineRe = /^\s*(\d{1,4})\s+(\d{2}-\d{5})\s+(\d{2}-\d{2}-\d{4})\s+(.+?)\s*$/;
+
+  lines.forEach(raw=>{
+    if(!raw.trim()) return;
+    const m = raw.match(lineRe);
+    if(!m){
+      if(/\d/.test(raw)) unmatched.push(raw);
+      return;
+    }
+    const [, no, nomor, tanggal, rest] = m;
+
+    const tokens = rest.trim().split(/\s+/);
+    let i = 0;
+    const nameParts = [];
+    const nameTokenRe = /^[A-Z.'()\/,]+$/;
+    while(i < tokens.length && nameTokenRe.test(tokens[i]) && !/^\d/.test(tokens[i])){
+      nameParts.push(tokens[i]);
+      i++;
+    }
+    if(nameParts.length === 0) return;
+    const nama = nameParts.join(' ');
+
+    const numTokens = tokens.slice(i);
+    const amountTokens = numTokens.filter(t=>/,\d{2}$/.test(t));
+    const keTokens = numTokens.filter(t=>/^\d+$/.test(t));
+
+    let basil = 0;
+    let pokok = 0;
+    if(keTokens.length > 0 && amountTokens.length >= 1){
+      // baris mutasi normal: elemen terakhir amountTokens = Pembiayaan (selalu 0,00)
+      const meaningful = amountTokens.slice(0, -1);
+      if(meaningful.length >= 1) pokok = parseAngka(meaningful[0]);
+      if(meaningful.length >= 2) basil = parseAngka(meaningful[1]);
+    } else if(amountTokens.length >= 1){
+      // baris pencairan baru: hanya Pokok, tanpa Basil
+      pokok = parseAngka(amountTokens[0]);
+      basil = 0;
+    } else {
+      return;
+    }
+
+    rows.push({no: parseInt(no,10), nomor, tanggal, nama, pokok, basil});
+  });
+  return {rows, unmatched};
+}
+
+function checkReady(){
+  document.getElementById('btnProses').disabled = !(dataP1 && dataP2);
+}
+
+setupDrop('drop1','file1','fname1','status1','debugLink1', 1, rows=>{ dataP1 = rows; });
+setupDrop('drop2','file2','fname2','status2','debugLink2', 2, rows=>{ dataP2 = rows; });
+
+document.getElementById('btnProses').addEventListener('click', ()=>{
+  const agg1 = aggregate(dataP1);
+  const agg2 = aggregate(dataP2);
+  matchedRows = buildComparison(agg1, agg2);
+  renderAll();
+});
+
+function aggregate(rows){
+  const map = new Map();
+  rows.forEach(r=>{
+    const key = r.nomor + '||' + r.nama;
+    if(!map.has(key)) map.set(key, {nomor:r.nomor, nama:r.nama, basil:0, pokok:0, jumlahBaris:0});
+    const e = map.get(key);
+    e.basil += r.basil;
+    e.pokok += r.pokok;
+    e.jumlahBaris += 1;
+  });
+  return map;
+}
+
+function buildComparison(agg1, agg2){
+  const keys = new Set([...agg1.keys(), ...agg2.keys()]);
+  const out = [];
+  keys.forEach(key=>{
+    const a = agg1.get(key);
+    const b = agg2.get(key);
+    const nomor = (a || b).nomor;
+    const nama = (a || b).nama;
+    const basil1 = a ? a.basil : 0;
+    const basil2 = b ? b.basil : 0;
+    const selisih = basil2 - basil1;
+
+    let status;
+    if(!a) status = 'baru';
+    else if(!b) status = 'hilang';
+    else if(selisih > 0) status = 'naik';
+    else if(selisih < 0) status = 'turun';
+    else status = 'tetap';
+
+    out.push({nomor, nama, basil1, basil2, selisih, status});
+  });
+  out.sort((x,y)=> Math.abs(y.selisih) - Math.abs(x.selisih));
+  return out;
+}
+
+function renderAll(){
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('hasilWrap').style.display = 'block';
+
+  const label1 = document.getElementById('label1').value || 'Periode 1';
+  const label2 = document.getElementById('label2').value || 'Periode 2';
+  document.getElementById('thBasil1').textContent = 'Basil ' + label1;
+  document.getElementById('thBasil2').textContent = 'Basil ' + label2;
+
+  renderSummary(label1, label2);
+  renderAnalysis(label1, label2);
+  renderTable();
+}
+
+function renderSummary(label1, label2){
+  // Total yang ditampilkan & dianalisa memakai angka Total Basil resmi yang
+  // tercetak di PDF (baris "T O T A L"), bukan hasil penjumlahan per-baris,
+  // supaya acuannya selalu sama dengan dokumen resmi.
+  const off1 = officialTotals[1];
+  const off2 = officialTotals[2];
+  const total1 = (off1 && off1.basil !== null) ? off1.basil : matchedRows.reduce((s,r)=>s + r.basil1, 0);
+  const total2 = (off2 && off2.basil !== null) ? off2.basil : matchedRows.reduce((s,r)=>s + r.basil2, 0);
+  const selisihTotal = total2 - total1;
+  const jumlahBaru = matchedRows.filter(r=>r.status==='baru').length;
+  const jumlahHilang = matchedRows.filter(r=>r.status==='hilang').length;
+  const jumlahBeda = matchedRows.filter(r=>r.status==='naik' || r.status==='turun').length;
+
+  const grid = document.getElementById('summaryGrid');
+  grid.innerHTML = `
+    <div class="stat">
+      <div class="k">Total Basil ${label1}</div>
+      <div class="v">Rp ${fmtAngka(total1)}</div>
+    </div>
+    <div class="stat">
+      <div class="k">Total Basil ${label2}</div>
+      <div class="v">Rp ${fmtAngka(total2)}</div>
+    </div>
+    <div class="stat ${selisihTotal===0?'':(selisihTotal>0?'warn':'ok')}">
+      <div class="k">Selisih Total</div>
+      <div class="v ${selisihTotal>0?'merah':(selisihTotal<0?'hijau':'')}">${selisihTotal>=0?'+':''}Rp ${fmtAngka(selisihTotal)}</div>
+      <div class="sub">${label2} dibanding ${label1}</div>
+    </div>
+    <div class="stat accent">
+      <div class="k">Data Berubah</div>
+      <div class="v">${jumlahBeda}</div>
+      <div class="sub">nasabah nilai basil berbeda</div>
+    </div>
+    <div class="stat">
+      <div class="k">Baru / Hilang</div>
+      <div class="v">${jumlahBaru} / ${jumlahHilang}</div>
+      <div class="sub">hanya ada di salah satu periode</div>
+    </div>
+  `;
+}
+
+function renderAnalysis(label1, label2){
+  const semuaMinus = matchedRows
+    .filter(r=>r.selisih < 0)
+    .sort((x,y)=> x.selisih - y.selisih);
+  const kontributor = semuaMinus.slice(0, 20);
+  const box = document.getElementById('analysisList');
+  if(semuaMinus.length === 0){
+    box.innerHTML = '<div class="empty-state" style="padding:20px;">Tidak ditemukan selisih minus antar kedua periode.</div>';
+    return;
+  }
+  const totalMinus = kontributor.reduce((s,r)=>s + r.selisih, 0);
+  box.innerHTML = kontributor.map((r,idx)=>{
+    const arah = r.status === 'baru' ? `data baru muncul di ${label2} dengan basil Rp ${fmtAngka(r.basil2)}`
+      : r.status === 'hilang' ? `data ada di ${label1} (Rp ${fmtAngka(r.basil1)}) namun tidak ditemukan di ${label2}`
+      : `basil berubah dari Rp ${fmtAngka(r.basil1)} menjadi Rp ${fmtAngka(r.basil2)}`;
+    const cls = r.selisih > 0 ? 'merah' : 'hijau';
+    return `<div class="analysis-item">
+      <div class="num-box">${idx+1}</div>
+      <div class="txt">
+        <b>${r.nama}</b> (${r.nomor}) — ${arah}.
+        Selisih <span class="amt ${cls}">${r.selisih>=0?'+':''}Rp ${fmtAngka(r.selisih)}</span>
+      </div>
+    </div>`;
+  }).join('') + `
+    <div class="analysis-item" style="background:#fdecec; border-color:#f3c3c9;">
+      <div class="num-box" style="background:var(--merah);">Σ</div>
+      <div class="txt">
+        <b>Total Selisih Minus</b> (${kontributor.length} nasabah${semuaMinus.length > 20 ? ` dari ${semuaMinus.length} total, 20 terbesar ditampilkan` : ''}) —
+        <span class="amt merah">Rp ${fmtAngka(totalMinus)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderTable(){
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const filter = document.getElementById('filterStatus').value;
+
+  const filtered = matchedRows.filter(r=>{
+    const matchSearch = !search || r.nomor.toLowerCase().includes(search) || r.nama.toLowerCase().includes(search);
+    const matchFilter = !filter || r.status === filter;
+    return matchSearch && matchFilter;
+  });
+
+  const pillLabel = {naik:'Basil Naik', turun:'Basil Turun', tetap:'Tetap', baru:'Baru', hilang:'Hilang'};
+
+  const tbody = document.getElementById('tblBody');
+  const tfoot = document.getElementById('tblFoot');
+  if(filtered.length === 0){
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--teks-muted); padding:24px;">Tidak ada data yang cocok</td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = filtered.map((r,idx)=>`
+    <tr>
+      <td>${idx+1}</td>
+      <td>${r.nomor}</td>
+      <td class="nama">${r.nama}</td>
+      <td class="num">${r.status==='baru' ? '-' : 'Rp ' + fmtAngka(r.basil1)}</td>
+      <td class="num">${r.status==='hilang' ? '-' : 'Rp ' + fmtAngka(r.basil2)}</td>
+      <td class="num">${r.selisih>=0?'+':''}Rp ${fmtAngka(r.selisih)}</td>
+      <td><span class="pill ${r.status}">${pillLabel[r.status]}</span></td>
+    </tr>
+  `).join('');
+
+  const noFilterActive = !search && !filter;
+  const off1 = officialTotals[1];
+  const off2 = officialTotals[2];
+  const pakaiResmi = noFilterActive && off1 && off1.basil !== null && off2 && off2.basil !== null;
+
+  const totalBasil1 = pakaiResmi ? off1.basil : filtered.reduce((s,r)=>s + r.basil1, 0);
+  const totalBasil2 = pakaiResmi ? off2.basil : filtered.reduce((s,r)=>s + r.basil2, 0);
+  const totalSelisih = totalBasil2 - totalBasil1;
+  const labelTotal = pakaiResmi
+    ? `TOTAL RESMI PDF (${filtered.length} nasabah)`
+    : `TOTAL (${filtered.length} nasabah)`;
+  tfoot.innerHTML = `
+    <tr>
+      <td colspan="3">${labelTotal}</td>
+      <td class="num">Rp ${fmtAngka(totalBasil1)}</td>
+      <td class="num">Rp ${fmtAngka(totalBasil2)}</td>
+      <td class="num">${totalSelisih>=0?'+':''}Rp ${fmtAngka(totalSelisih)}</td>
+      <td></td>
+    </tr>
+  `;
+}
+
+document.getElementById('searchBox').addEventListener('input', renderTable);
+document.getElementById('filterStatus').addEventListener('change', renderTable);
+
+// ===== Export data mentah (per periode, sebelum agregasi) ke Excel asli =====
+// Ini yang mengganti alur "PDF -> baca manual" jadi "PDF -> Excel", supaya
+// hasil ekstraksi pdf.js bisa dicek/diaudit langsung di Excel tanpa masalah
+// format angka atau pemisah kolom seperti pada CSV.
+function exportRawToExcel(rows, official, label, sourceFileName){
+  if(!rows || rows.length === 0) return;
+
+  const aoa = [
+    ['No', 'Nomor', 'Nama', 'Tanggal', 'Pokok', 'Basil']
+  ];
+  rows.forEach(r=>{
+    aoa.push([r.no, r.nomor, r.nama, r.tanggal, r.pokok, r.basil]);
+  });
+
+  const jumlahPokok = rows.reduce((s,r)=>s + r.pokok, 0);
+  const jumlahBasil = rows.reduce((s,r)=>s + r.basil, 0);
+  aoa.push(['', '', '', 'TOTAL (dihitung dari baris)', jumlahPokok, jumlahBasil]);
+
+  if(official && official.basil !== null){
+    aoa.push(['', '', '', 'TOTAL resmi (tercetak di PDF)', official.pokok, official.basil]);
+    aoa.push(['', '', '', 'Selisih vs resmi', official.pokok - jumlahPokok, official.basil - jumlahBasil]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:6},{wch:12},{wch:32},{wch:12},{wch:16},{wch:16}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data Mentah');
+
+  const safeName = (label || 'data').replace(/[^a-zA-Z0-9]+/g,'-');
+  XLSX.writeFile(wb, `data-mentah-${safeName}.xlsx`);
+}
+
+// ===== Export tabel pencocokan (hasil akhir) ke Excel asli =====
+document.getElementById('btnExportXl').addEventListener('click', ()=>{
+  const label1 = document.getElementById('label1').value || 'Periode1';
+  const label2 = document.getElementById('label2').value || 'Periode2';
+
+  const aoa = [
+    ['Nomor', 'Nama', `Basil ${label1}`, `Basil ${label2}`, 'Selisih', 'Status']
+  ];
+  const pillLabel = {naik:'Basil Naik', turun:'Basil Turun', tetap:'Tetap', baru:'Baru', hilang:'Hilang'};
+  matchedRows.forEach(r=>{
+    aoa.push([r.nomor, r.nama, r.basil1, r.basil2, r.selisih, pillLabel[r.status]]);
+  });
+
+  const total1 = matchedRows.reduce((s,r)=>s + r.basil1, 0);
+  const total2 = matchedRows.reduce((s,r)=>s + r.basil2, 0);
+  aoa.push(['', 'TOTAL', total1, total2, total2 - total1, '']);
+
+  const off1 = officialTotals[1], off2 = officialTotals[2];
+  if(off1 && off1.basil !== null && off2 && off2.basil !== null){
+    aoa.push(['', 'TOTAL resmi (dari PDF)', off1.basil, off2.basil, off2.basil - off1.basil, '']);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:12},{wch:32},{wch:18},{wch:18},{wch:16},{wch:14}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rekonsiliasi');
+  XLSX.writeFile(wb, 'rekonsiliasi-basil.xlsx');
+});
 </script>
+
 </body>
 </html>
