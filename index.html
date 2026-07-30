@@ -270,7 +270,8 @@
   </div>
   <nav class="menu">
     <a href="https://appabsku.github.io/checker/">🧾 APK CHECKER</a>
-    <a href="#" class="aktif">📊 ANALISA NISBAH</a>
+    <a href="https://appabsku.github.io/nisbah/" class="aktif">📊 ANALISA NISBAH</a>
+    <a href="https://appabsku.github.io/datakol/">📑 Ekstrak 234</a>
   </nav>
 </header>
 
@@ -408,12 +409,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 let dataP1 = null, dataP2 = null;
 let matchedRows = [];
-let officialTotals = {1:null, 2:null}; // {pokok, basil}
+let officialTotals = {1:null, 2:null};
 
 const debugData = {1:null, 2:null};
 
-// Baris header/footer berulang yang harus disaring supaya tidak mencampuri baris data
-// di sekitar batas halaman (mis. saat dua baris kebetulan punya koordinat Y berdekatan).
 const BOILERPLATE_PATTERNS = [
   /^KSPPS\./i,
   /^LAPORAN MUTASI HARIAN/i,
@@ -428,7 +427,6 @@ function isBoilerplate(line){
   return BOILERPLATE_PATTERNS.some(re => re.test(line.trim()));
 }
 
-// Ubah nama file PDF jadi label periode yang rapi, mis. "JUNI_2026.pdf" -> "Juni 2026"
 function deriveLabelFromFilename(filename){
   let base = filename.replace(/\.pdf$/i, '');
   base = base.replace(/[_\-]+/g, ' ').trim();
@@ -536,7 +534,7 @@ async function extractPdfText(file){
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data: buf}).promise;
   let rawLines = [];
-  const TOL = 2.5; // toleransi perbedaan koordinat Y dianggap satu baris
+  const TOL = 2.5;
 
   for(let p=1; p<=pdf.numPages; p++){
     const page = await pdf.getPage(p);
@@ -570,7 +568,6 @@ async function extractPdfText(file){
     });
   }
 
-  // perbaiki spasi yang tersisip di tengah angka/tanggal sebelum penyaringan
   rawLines = rawLines.map(line=>{
     let s = line;
     let prev;
@@ -579,7 +576,6 @@ async function extractPdfText(file){
     return s;
   });
 
-  // tangkap baris TOTAL resmi sebelum baris itu ikut disaring
   let official = {pokok: null, basil: null};
   const totalRe = /^T\s*O\s*T\s*A\s*L\s+([\d.,]+)\s+([\d.,]+)/i;
   rawLines.forEach(line=>{
@@ -590,13 +586,11 @@ async function extractPdfText(file){
     }
   });
 
-  // saring baris header/footer berulang supaya tidak mencampuri baris data di sekitar page-break
   const cleanLines = rawLines.filter(line => line.length > 0 && !isBoilerplate(line) && !totalRe.test(line));
 
   return {cleanText: cleanLines.join('\n'), official};
 }
 
-// Parse angka format Indonesia "1.234.567,00" -> integer 1234567 (desimal dibuang)
 function parseAngka(str){
   const bersih = str.replace(/\./g,'').replace(',', '.');
   const n = parseFloat(bersih);
@@ -639,12 +633,10 @@ function parseRows(text){
     let basil = 0;
     let pokok = 0;
     if(keTokens.length > 0 && amountTokens.length >= 1){
-      // baris mutasi normal: elemen terakhir amountTokens = Pembiayaan (selalu 0,00)
       const meaningful = amountTokens.slice(0, -1);
       if(meaningful.length >= 1) pokok = parseAngka(meaningful[0]);
       if(meaningful.length >= 2) basil = parseAngka(meaningful[1]);
     } else if(amountTokens.length >= 1){
-      // baris pencairan baru: hanya Pokok, tanpa Basil
       pokok = parseAngka(amountTokens[0]);
       basil = 0;
     } else {
@@ -723,9 +715,6 @@ function renderAll(){
 }
 
 function renderSummary(label1, label2){
-  // Total yang ditampilkan & dianalisa memakai angka Total Basil resmi yang
-  // tercetak di PDF (baris "T O T A L"), bukan hasil penjumlahan per-baris,
-  // supaya acuannya selalu sama dengan dokumen resmi.
   const off1 = officialTotals[1];
   const off2 = officialTotals[2];
   const total1 = (off1 && off1.basil !== null) ? off1.basil : matchedRows.reduce((s,r)=>s + r.basil1, 0);
@@ -853,10 +842,6 @@ function renderTable(){
 document.getElementById('searchBox').addEventListener('input', renderTable);
 document.getElementById('filterStatus').addEventListener('change', renderTable);
 
-// ===== Export data mentah (per periode, sebelum agregasi) ke Excel asli =====
-// Ini yang mengganti alur "PDF -> baca manual" jadi "PDF -> Excel", supaya
-// hasil ekstraksi pdf.js bisa dicek/diaudit langsung di Excel tanpa masalah
-// format angka atau pemisah kolom seperti pada CSV.
 function exportRawToExcel(rows, official, label, sourceFileName){
   if(!rows || rows.length === 0) return;
 
@@ -886,7 +871,6 @@ function exportRawToExcel(rows, official, label, sourceFileName){
   XLSX.writeFile(wb, `data-mentah-${safeName}.xlsx`);
 }
 
-// ===== Export tabel pencocokan (hasil akhir) ke Excel asli =====
 document.getElementById('btnExportXl').addEventListener('click', ()=>{
   const label1 = document.getElementById('label1').value || 'Periode1';
   const label2 = document.getElementById('label2').value || 'Periode2';
